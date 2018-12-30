@@ -715,7 +715,7 @@
     "message": "Fehler bei Wiederherstellung der Sicherungskopie."
   },
   "key_set_as_default": {
-    "message": "Als Standard Schlüssel einstellen",
+    "message": "Als Standardschlüssel setzen",
     "description": "Set as default key for the keyring button"
   },
   "invalid_default_key": {

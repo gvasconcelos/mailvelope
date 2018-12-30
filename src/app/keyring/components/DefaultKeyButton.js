@@ -29,34 +29,32 @@ export default class DefaultKeyButton extends React.Component {
   }
 
   render() {
-    if (this.props.isDefault) {
-      return <button type="button" className="btn btn-warning" disabled={true}>{l10n.map.keygrid_default_label}</button>;
-    } else {
-      const buttonText = (
-        <div>
-          <span className="glyphicon glyphicon-pushpin" aria-hidden="true"></span>&nbsp;
-          <span>{l10n.map.key_set_as_default}</span>
-        </div>
-      );
-      if (this.props.disabled) {
-        return (
-          <div ref={node => this.defaultButton = node} data-toggle="tooltip" data-placement="top" title={l10n.map.invalid_default_key}>
-            <button type="button" className="btn btn-default disabled">
-              {buttonText}
+    return (
+      <>
+      {this.props.isDefault
+        ? (
+          <button type="button" className={`btn btn-warning ${this.props.className || ''}`} disabled={true}>{l10n.map.keygrid_default_label}</button>
+        ) :
+        this.props.disabled
+          ? (
+            <div ref={node => this.defaultButton = node} data-toggle="tooltip" data-placement="top" title={l10n.map.invalid_default_key}>
+              <button type="button" className={`btn btn-default disabled ${this.props.className || ''}`}>
+                {l10n.map.key_set_as_default}
+              </button>
+            </div>
+          ) : (
+            <button type="button" className={`btn btn-default ${this.props.className || ''}`} onClick={this.props.onClick}>
+              {l10n.map.key_set_as_default}
             </button>
-          </div>
-        );
+          )
       }
-      return (
-        <button type="button" className="btn btn-default" onClick={this.props.onClick}>
-          {buttonText}
-        </button>
-      );
-    }
+      </>
+    );
   }
 }
 
 DefaultKeyButton.propTypes = {
+  className: PropTypes.string,
   isDefault: PropTypes.bool.isRequired,
   onClick: PropTypes.func,
   disabled: PropTypes.bool

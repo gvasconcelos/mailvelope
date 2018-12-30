@@ -13,10 +13,13 @@ import {port} from '../app';
 import {KeyringOptions} from './KeyringOptions';
 import KeyringSelect from './components/KeyringSelect';
 import KeyGrid from './KeyGrid';
+import Key from './Key';
+import User from './User';
 import ImportKey from './importKey';
 import GenerateKey from './GenerateKey';
 import KeyringSetup from './KeyringSetup';
 import Spinner from '../../components/util/Spinner';
+import './Keyring.css';
 
 l10n.register([
   'keyring_header',
@@ -135,6 +138,8 @@ export default class Keyring extends React.Component {
                 ) : (
                   <>
                     <Route exact path="/keyring" render={() => this.state.keys.length ? <Redirect to='/keyring/display' /> : <Redirect to='/keyring/setup' />} />
+                    <Route exact path='/keyring/key/:keyIdx' render={props => <Key {...props} keys={this.state.keys} defaultKeyFpr={this.state.defaultKeyFpr} onChangeDefaultKey={this.handleChangeDefaultKey} onDeleteKey={this.handleDeleteKey} onKeyringChange={this.loadKeyring} />} />
+                    <Route exact path='/keyring/key/:keyIdx/user/:userIdx' render={props => <User {...props} keys={this.state.keys} onKeyringChange={this.loadKeyring} />} />
                     <Route path='/keyring/display' render={() => <KeyGrid keys={this.state.keys} defaultKeyFpr={this.state.defaultKeyFpr} onChangeDefaultKey={this.handleChangeDefaultKey} onDeleteKey={this.handleDeleteKey} onRefreshKeyring={this.handleRefreshKeyring} spinner={this.state.keysLoading} />} />
                     <Route path='/keyring/import' render={({location}) => <ImportKey onKeyringChange={this.loadKeyring} prefs={this.props.prefs} location={location} />} />
                     <Route path='/keyring/generate' render={() => <GenerateKey onKeyringChange={this.loadKeyring} defaultName={this.state.name} defaultEmail={this.state.email} />} />

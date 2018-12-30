@@ -15,55 +15,55 @@ l10n.register([
   'key_gen_pwd_match'
 ]);
 
-function labelVisibility(password, passwordCheck) {
-  const mask = (passwordCheck.length > 0) << 1 | (password.length > 0);
-  const label = {empty: '', nequ: '', match: ''};
-  switch (mask) {
-    case 0:
-      // both empty
-      label.nequ = 'hide';
-      label.match = 'hide';
-      break;
-    case 1:
-    case 2:
-      // re-enter or enter empty
-      label.empty = 'hide';
-      label.match = 'hide';
-      break;
-    case 3:
-      // both filled
-      label.empty = 'hide';
-      if (passwordCheck === password) {
-        label.nequ = 'hide';
-      } else {
-        label.match = 'hide';
-      }
-      break;
+export default class DefinePassword extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      validPasswordCheck: true
+    },
+    this.handleChange = this.handleChange.bind(this);
+    this.validatePasswordCheck = this.validatePasswordCheck.bind(this);
   }
-  return label;
-}
 
-export default function DefinePassword({value: {password, passwordCheck}, onChange, disabled}) {
-  const visibility = labelVisibility(password, passwordCheck);
-  return (
-    <div>
-      <div className="form-group">
-        <label className="control-label" htmlFor="password">{l10n.map.key_gen_pwd}</label>
-        <input value={password} onChange={onChange} type="password" className="form-control" id="password" disabled={disabled} />
-        <span className={`label label-danger ${visibility.empty}`}>{l10n.map.key_gen_pwd_empty}</span>
+  componentDidUpdate(prevProps, prevState) {
+    const validPasswordCheck = this.validatePasswordCheck() && (this.props.value.passwordCheck.length || prevProps.value.passwordCheck === '');
+    if (validPasswordCheck !== prevState.validPasswordCheck) {
+      this.setState({validPasswordCheck});
+    }
+  }
+
+  validatePasswordCheck() {
+    return !this.props.value.passwordCheck.length || !this.props.value.password.length || this.props.value.password === this.props.value.passwordCheck;
+  }
+
+  handleChange(event) {
+    this.props.onChange(event);
+    console.log(this.props.value.password.length, this.props.value.password, this.props.value.passwordCheck);
+    console.log(this.validatePasswordCheck());
+    this.setState({validPasswordCheck: this.validatePasswordCheck()});
+  }
+
+  render() {
+    return (
+      <div>
+        <div className={`form-group ${this.props.errors.password ? ' has-error' : ''}`}>
+          <label className="control-label" htmlFor="password">{l10n.map.key_gen_pwd}</label>
+          <input value={this.props.value.password} onChange={this.props.onChange} type="password" className="form-control" id="password" disabled={this.props.disabled} />
+          <span className={`help-block ${this.props.errors.password ? 'show' : 'hide'}`}>{l10n.map.key_gen_pwd_empty}</span>
+        </div>
+        <div className={`form-group ${(this.props.errors.passwordCheck || !this.state.validPasswordCheck) ? ' has-error' : ''}`}>
+          <label className="control-label" htmlFor="passwordCheck">{l10n.map.key_gen_pwd_reenter}</label>
+          <input value={this.props.value.passwordCheck} onChange={this.props.onChange} type="password" className="form-control" id="passwordCheck" disabled={this.props.disabled} />
+          <span className={`help-block ${(this.props.errors.passwordCheck  || !this.state.validPasswordCheck) ? 'show' : 'hide'}`}>{l10n.map.key_gen_pwd_unequal}</span>
+        </div>
       </div>
-      <div className="form-group">
-        <label className="control-label" htmlFor="passwordCheck">{l10n.map.key_gen_pwd_reenter}</label>
-        <input value={passwordCheck} onChange={onChange} type="password" className="form-control" id="passwordCheck" disabled={disabled} />
-        <span className={`label label-danger ${visibility.nequ}`}>{l10n.map.key_gen_pwd_unequal}</span>
-        <span className={`label label-success ${visibility.match}`}>{l10n.map.key_gen_pwd_match}</span>
-      </div>
-    </div>
-  );
+    );
+  }
 }
 
 DefinePassword.propTypes = {
   value: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
-  disabled: PropTypes.bool
+  disabled: PropTypes.bool,
+  errors: PropTypes.object
 };

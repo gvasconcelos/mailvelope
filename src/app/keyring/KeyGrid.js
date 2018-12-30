@@ -7,12 +7,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import * as l10n from '../../lib/l10n';
 
-import {port} from '../app';
+// import {port} from '../app';
 import {KeyringOptions} from './KeyringOptions';
 import Spinner from '../../components/util/Spinner';
 import KeyDetails from './components/KeyDetails';
 import KeyringBackup from './components/KeyringBackup';
-import {Link} from 'react-router-dom';
+import {Redirect, Link} from 'react-router-dom';
 import './KeyGrid.css';
 
 l10n.register([
@@ -41,7 +41,8 @@ export default class KeyGrid extends React.Component {
     super(props);
     this.state = {
       keyTypeFilter: 'allkeys',
-      keyDetails: null,
+      selectedKey: null,
+      // keyDetails: null,
       keyringBackup: null
     };
   }
@@ -67,9 +68,9 @@ export default class KeyGrid extends React.Component {
   }
 
   showKeyDetails(index) {
-    const key = this.props.keys[index];
-    port.send('getKeyDetails', {fingerprint: key.fingerprint, keyringId: this.context.keyringId})
-    .then(details => this.setState({keyDetails: {...key, ...details}}));
+    this.setState({selectedKey: index});
+    // port.send('getKeyDetails', {fingerprint: key.fingerprint, keyringId: this.context.keyringId})
+    // .then(details => this.setState({keyDetails: {...key, ...details}}));
   }
 
   deleteKeyEntry(e, index) {
@@ -109,6 +110,9 @@ export default class KeyGrid extends React.Component {
   }
 
   render() {
+    if (this.state.selectedKey !== null) {
+      return <Redirect to={`/keyring/key/${this.state.selectedKey}`} />;
+    }
     return (
       <div style={{minHeight: '300px'}}>
         <div className="table-responsive-custom">

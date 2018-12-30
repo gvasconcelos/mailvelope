@@ -75,16 +75,33 @@ export default class GenerateKey extends React.Component {
       default:
         value = target.value;
     }
-    this.setState({[target.id]: value});
+    this.setState(({errors: err}) => {
+      const {[target.id]: deleted, ...errors} = err;
+      return {
+        [target.id]: value,
+        errors
+      };
+    });
   }
 
-
   handleGenerate() {
+    const errors = {};
+
     const validEmail = mvelo.util.checkEmail(this.state.email);
     if (!validEmail) {
-      this.setState({errors: {email: new Error()}});
+      errors.email = new Error();
+    }
+    if (!this.state.password.length) {
+      errors.password = new Error();
+    }
+    if (this.state.password.length && this.state.password !== this.state.passwordCheck) {
+      errors.passwordCheck = new Error();
+    }
+    if (Object.keys(errors).length) {
+      this.setState({errors});
       return;
     }
+
     this.setState({generating: true});
   }
 
@@ -124,7 +141,6 @@ export default class GenerateKey extends React.Component {
   }
 
   render() {
-    const validPassword = this.state.password.length && this.state.password === this.state.passwordCheck || this.context.gnupg;
     return (
       <div className={this.state.generating ? 'busy' : ''}>
         <h3 className="logo-header">
@@ -135,7 +151,7 @@ export default class GenerateKey extends React.Component {
           <AdvancedExpand>
             <AdvKeyGenOptions value={this.state} onChange={this.handleChange} disabled={this.state.success} />
           </AdvancedExpand>
-          {!this.context.gnupg && <DefinePassword value={this.state} onChange={this.handleChange} disabled={this.state.success} />}
+          {!this.context.gnupg && <DefinePassword value={this.state} errors={this.state.errors} onChange={this.handleChange} disabled={this.state.success} />}
           <div className={`form-group ${this.context.demail ? 'hide' : ''}`}>
             <div className="checkbox">
               <label className="checkbox" htmlFor="mveloKeyServerUpload">
@@ -145,10 +161,10 @@ export default class GenerateKey extends React.Component {
             </div>
           </div>
           <div className="form-group">
-            {this.state.alert && <Alert header={this.state.alert.header} message={this.state.alert.message} type={this.state.alert.type} />}
+            {this.state.alert && <Alert header={this.state.alert.header} type={this.state.alert.type}>{this.state.alert.message}</Alert>}
           </div>
           <div className="form-group">
-            <button onClick={this.handleGenerate} type="button" className="btn btn-primary" disabled={this.state.success || !validPassword}>{l10n.map.key_gen_generate}</button>
+            <button onClick={this.handleGenerate} type="button" className="btn btn-primary">{l10n.map.key_gen_generate}</button>
             <Link className="btn btn-default" to='/keyring' onClick={this.props.onKeyringChange} replace tabIndex="0">
               <span>{l10n.map.action_menu_back}</span>
             </Link>

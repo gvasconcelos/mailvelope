@@ -18,18 +18,30 @@ import {isKeyPseudoRevoked} from './trustKey';
 export async function getUserId(key, validityCheck = true) {
   const primaryUser = await key.getPrimaryUser();
   if (primaryUser) {
-    return primaryUser.user.userId.userid;
+    return {
+      userid: primaryUser.user.userId.userid,
+      email:  primaryUser.user.userId.email,
+      name:  primaryUser.user.userId.name
+    };
   } else {
     // there is no valid user id on this key
     if (!validityCheck) {
       // take first available user ID
       for (const user of key.users) {
         if (user.userId) {
-          return user.userId.userid;
+          return {
+            userid:  user.userId.userid,
+            email: user.userId.email,
+            name: user.userId.name
+          };
         }
       }
     }
-    return l10n('keygrid_invalid_userid');
+    return {
+      usersid: l10n('keygrid_invalid_userid'),
+      email: null,
+      name: null
+    };
   }
 }
 
@@ -74,7 +86,8 @@ export async function mapKeys(keys) {
     uiKey.fingerprint = key.primaryKey.getFingerprint();
     // primary user
     try {
-      uiKey.userId = await getUserId(key, false);
+      const userId = await getUserId(key, false);
+      uiKey.userId = userId.userid;
       const address = goog.format.EmailAddress.parse(uiKey.userId);
       uiKey.name = address.getName();
       uiKey.email = address.getAddress();
@@ -167,7 +180,10 @@ export async function mapUsers(users = [], toKey, keyring, primaryKey) {
         // filter out user attribute packages
         return;
       }
+      console.log(user);
       uiUser.userId = user.userId.userid;
+      uiUser.email = user.userId.email;
+      uiUser.name = user.userId.name;
       uiUser.signatures = [];
       if (!user.selfCertifications) {
         return;
@@ -177,7 +193,11 @@ export async function mapUsers(users = [], toKey, keyring, primaryKey) {
           continue;
         }
         const sig = {};
-        sig.signer = user.userId.userid;
+        sig.signer = {
+          userid: user.userId.userid,
+          email: user.userId.email,
+          name: user.userId.name
+        };
         sig.keyId = selfCert.issuerKeyId.toHex().toUpperCase();
         sig.crDate = selfCert.created.toISOString();
         uiUser.signatures.push(sig);
@@ -198,7 +218,11 @@ export async function mapUsers(users = [], toKey, keyring, primaryKey) {
             continue;
           }
         } else {
-          sig.signer = l10n('keygrid_signer_unknown');
+          sig.signer = {
+            userid: l10n('keygrid_signer_unknown'),
+            email: null,
+            name: null
+          };
         }
         sig.keyId = keyidHex.toUpperCase();
         sig.crDate = otherCert.created.toISOString();
