@@ -20,27 +20,14 @@ export default class DefinePassword extends React.Component {
     super(props);
     this.state = {
       validPasswordCheck: true
-    },
-    this.handleChange = this.handleChange.bind(this);
-    this.validatePasswordCheck = this.validatePasswordCheck.bind(this);
+    };
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const validPasswordCheck = this.validatePasswordCheck() && (this.props.value.passwordCheck.length || prevProps.value.passwordCheck === '');
+    const validPasswordCheck = (!this.props.value.passwordCheck.length || !this.props.value.password.length || this.props.value.password === this.props.value.passwordCheck) && (this.props.value.passwordCheck.length || prevProps.value.passwordCheck === '');
     if (validPasswordCheck !== prevState.validPasswordCheck) {
       this.setState({validPasswordCheck});
     }
-  }
-
-  validatePasswordCheck() {
-    return !this.props.value.passwordCheck.length || !this.props.value.password.length || this.props.value.password === this.props.value.passwordCheck;
-  }
-
-  handleChange(event) {
-    this.props.onChange(event);
-    console.log(this.props.value.password.length, this.props.value.password, this.props.value.passwordCheck);
-    console.log(this.validatePasswordCheck());
-    this.setState({validPasswordCheck: this.validatePasswordCheck()});
   }
 
   render() {
