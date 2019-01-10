@@ -10,12 +10,12 @@ const l10n = mvelo.l10n.getMessage;
 import {isKeyPseudoRevoked} from './trustKey';
 
 /**
- * Get primary or first available user id of key
+ * Get primary or first available user id, email and name of key
  * @param  {openpgp.Key} key
  * @param  {Boolean} [validityCheck=true] - only return valid user ids, e.g. for expired keys you would want to set to false to still get a result
- * @return {String} user id
+ * @return {Object<userid, email, content>}
  */
-export async function getUserId(key, validityCheck = true) {
+export async function getUserInfo(key, validityCheck = true) {
   const primaryUser = await key.getPrimaryUser();
   if (primaryUser) {
     return {
@@ -86,8 +86,8 @@ export async function mapKeys(keys) {
     uiKey.fingerprint = key.primaryKey.getFingerprint();
     // primary user
     try {
-      const userId = await getUserId(key, false);
-      uiKey.userId = userId.userid;
+      const {userid} = await getUserInfo(key, false);
+      uiKey.userId = userid;
       const address = goog.format.EmailAddress.parse(uiKey.userId);
       uiKey.name = address.getName();
       uiKey.email = address.getAddress();
@@ -212,7 +212,7 @@ export async function mapUsers(users = [], toKey, keyring, primaryKey) {
         if (issuerKeys) {
           const [{keyPacket: signingKeyPacket}] = issuerKeys[0].getKeys(otherCert.issuerKeyId);
           if (signingKeyPacket && await verifyUserCertificate(user, primaryKey, otherCert, signingKeyPacket) === openpgp.enums.keyStatus.valid) {
-            sig.signer = await getUserId(issuerKeys[0]);
+            sig.signer = await getUserInfo(issuerKeys[0]);
           } else {
             // invalid signature
             continue;

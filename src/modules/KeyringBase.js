@@ -7,7 +7,7 @@ import mvelo from '../lib/lib-mvelo';
 import * as openpgp from 'openpgp';
 import {goog} from './closure-library/closure/goog/emailaddress';
 import {getKeyringAttr} from './keyring';
-import {mapKeys, mapSubKeys, mapUsers, mapKeyUserIds, getUserId, isValidEncryptionKey, sortKeysByCreationDate} from './key';
+import {mapKeys, mapSubKeys, mapUsers, mapKeyUserIds, getUserInfo, isValidEncryptionKey, sortKeysByCreationDate} from './key';
 import * as trustKey from './trustKey';
 import {upload as mveloKeyServerUpload} from './mveloKeyServer';
 
@@ -115,7 +115,8 @@ export default class KeyringBase {
           }
         } else {
           // only consider primary user
-          const user = {userId: await getUserId(key)};
+          const {userid: userId} = await getUserInfo(key);
+          const user = {userId};
           mapKeyUserIds(user);
           keyData.users = [user];
         }

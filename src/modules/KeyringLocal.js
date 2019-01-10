@@ -5,7 +5,7 @@
 
 import mvelo from '../lib/lib-mvelo';
 import * as openpgp from 'openpgp';
-import {getUserId, checkKeyId} from './key';
+import {getUserInfo, checkKeyId} from './key';
 import KeyringBase from './KeyringBase';
 const l10n = mvelo.l10n.getMessage;
 import * as keyringSync from './keyringSync';
@@ -113,16 +113,18 @@ export default class KeyringLocal extends KeyringBase {
       if (key) {
         key = key[0];
         await key.update(pubKey);
+        const {userid: userId} = await getUserInfo(pubKey);
         result.push({
           type: 'success',
-          message: l10n('key_import_public_update', [keyId, await getUserId(pubKey)])
+          message: l10n('key_import_public_update', [keyId, userId])
         });
         this.sync.add(fingerprint, keyringSync.UPDATE);
       } else {
         this.keystore.publicKeys.push(pubKey);
+        const {userid: userId} = await getUserInfo(pubKey);
         result.push({
           type: 'success',
-          message: l10n('key_import_public_success', [keyId, await getUserId(pubKey)])
+          message: l10n('key_import_public_success', [keyId, userId])
         });
         this.sync.add(fingerprint, keyringSync.INSERT);
       }
@@ -152,26 +154,29 @@ export default class KeyringLocal extends KeyringBase {
         key = key[0];
         if (key.isPublic()) {
           await privKey.update(key);
+          const {userid: userId} = await getUserInfo(privKey);
           this.keystore.publicKeys.removeForId(fingerprint);
           this.keystore.privateKeys.push(privKey);
           result.push({
             type: 'success',
-            message: l10n('key_import_private_exists', [keyId, await getUserId(privKey)])
+            message: l10n('key_import_private_exists', [keyId, userId])
           });
           this.sync.add(fingerprint, keyringSync.UPDATE);
         } else {
           await key.update(privKey);
+          const {userid: userId} = await getUserInfo(privKey);
           result.push({
             type: 'success',
-            message: l10n('key_import_private_update', [keyId, await getUserId(privKey)])
+            message: l10n('key_import_private_update', [keyId, userId])
           });
           this.sync.add(fingerprint, keyringSync.UPDATE);
         }
       } else {
         this.keystore.privateKeys.push(privKey);
+        const {userid: userId} = await getUserInfo(privKey);
         result.push({
           type: 'success',
-          message: l10n('key_import_private_success', [keyId, await getUserId(privKey)])
+          message: l10n('key_import_private_success', [keyId, userId])
         });
         this.sync.add(fingerprint, keyringSync.INSERT);
       }
