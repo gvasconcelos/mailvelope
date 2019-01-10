@@ -91,12 +91,16 @@ export default class GenerateKey extends React.Component {
     if (!validEmail) {
       errors.email = new Error();
     }
-    if (!this.state.password.length) {
-      errors.password = new Error();
+
+    if (!this.context.gnupg) {
+      if (!this.state.password.length) {
+        errors.password = new Error();
+      }
+      if (this.state.password.length && this.state.password !== this.state.passwordCheck) {
+        errors.passwordCheck = new Error();
+      }
     }
-    if (this.state.password.length && this.state.password !== this.state.passwordCheck) {
-      errors.passwordCheck = new Error();
-    }
+
     if (Object.keys(errors).length) {
       this.setState({errors});
       return;
