@@ -13,6 +13,7 @@ import {port} from '../app';
 import {KeyringOptions} from './KeyringOptions';
 import NameAddrInput from './components/NameAddrInput';
 import UserSignatures from './components/UserSignatures';
+import KeyStatus from './components/KeyStatus';
 import Spinner from '../../components/util/Spinner';
 import ModalDialog from '../../components/util/ModalDialog';
 
@@ -71,7 +72,7 @@ export default class User extends React.Component {
         signatures: result.users[this.props.match.params.userIdx].signatures,
         name: result.users[this.props.match.params.userIdx].name,
         email: result.users[this.props.match.params.userIdx].email,
-        validity: true,
+        status: result.users[this.props.match.params.userIdx].status,
         crDate: new Date().toISOString(),
         exDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()
       };
@@ -202,7 +203,7 @@ export default class User extends React.Component {
                     <div className="form-group">
                       <label className="col-sm-4 col-lg-3 control-label">{l10n.map.keygrid_validity_status}</label>
                       <div className="col-sm-8 col-lg-9 text-only">
-                        <span className={`label label-${this.state.user.validity ? 'success' : 'danger'}`}>{this.state.user.validity ? l10n.map.keygrid_status_valid : l10n.map.keygrid_status_invalid}</span>
+                        <KeyStatus status={this.state.user.status} />
                       </div>
                     </div>
                     <div className="form-group">

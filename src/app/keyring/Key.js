@@ -15,6 +15,7 @@ import KeyUsers from './components/KeyUsers';
 import KeyDetails from './components/KeyDetails';
 import KeyExport from './components/KeyExport';
 import DefaultKeyButton from './components/DefaultKeyButton';
+import KeyStatus from './components/KeyStatus';
 import Spinner from '../../components/util/Spinner';
 import Alert from '../../components/util/Alert';
 import ModalDialog from '../../components/util/ModalDialog';
@@ -67,12 +68,11 @@ export default class Key extends React.Component {
     this.getKeyDetails(this.context);
   }
 
-  async getKeyDetails({keyringId, gnupg, demail}) {
+  async getKeyDetails({keyringId, demail}) {
     const keyDetails = await port.send('getKeyDetails', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
     this.setState(prevState => ({
       loading: false,
       keyDetails: {
-        keyAlgo: gnupg ? 'default' : 'rsa',
         keyServerState: demail ? false : this.getKeyServerState(),
         ...prevState.keyDetails,
         ...keyDetails
@@ -146,7 +146,7 @@ export default class Key extends React.Component {
               <div className="navbar-brand">
                 <i className={`icon icon-${this.state.keyDetails.type === 'public' ? 'key' : 'keyPair'}`}></i>
                 <span className="margin-left-sm">{this.state.keyDetails.name}</span>
-                <span className={`margin-left-sm label label-${this.state.keyDetails.validity ? 'success' : 'danger'}`}>{this.state.keyDetails.validity ? l10n.map.keygrid_status_valid : l10n.map.keygrid_status_invalid}</span>
+                <KeyStatus className="margin-left-sm" status={this.state.keyDetails.status} />
               </div>
             </div>
             <div className="collapse navbar-collapse">

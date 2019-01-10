@@ -7,6 +7,7 @@ import React from 'react';
 import {Redirect, Link} from 'react-router-dom';
 import PropTypes from 'prop-types';
 import * as l10n from '../../../lib/l10n';
+import KeyStatus from './KeyStatus';
 import {KeyringOptions} from './../KeyringOptions';
 
 import './KeyUsers.css';
@@ -84,14 +85,14 @@ export default class KeyUsers extends React.Component {
                   <td className="text-center">
                     {this.props.keyType === 'private'
                       ? (<label>
-                        <input type="radio" onChange={e => this.props.onChangePrimaryUser(e.target.value)} name="isPrimaryUser" value={index} checked={index === 0} />
+                        <input type="radio" onChange={e => this.props.onChangePrimaryUser(e.target.value)} name="isPrimaryUser" value={index} checked={user.isPrimary} />
                       </label>)
-                      : <span className={`${index === 0 && 'glyphicon glyphicon-ok'}`} aria-hidden="true"></span>
+                      : <span className={`${user.isPrimary && 'glyphicon glyphicon-ok'}`} aria-hidden="true"></span>
                     }
                   </td>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
-                  <td className="text-center"><span className={`margin-left-sm label label-${this.state.validity ? 'success' : 'danger'}`}>{this.state.validity ? l10n.map.keygrid_status_valid : l10n.map.keygrid_status_invalid}</span></td>
+                  <td className="text-center"><KeyStatus status={user.status} /></td>
                   <td className="text-center">{user.signatures.length}</td>
                   <td><span className="glyphicon glyphicon-menu-right" aria-hidden="true"></span></td>
                 </tr>

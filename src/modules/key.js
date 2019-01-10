@@ -77,11 +77,12 @@ export async function mapKeys(keys) {
       uiKey.type = 'private';
     }
     try {
-      uiKey.validity = await key.verifyPrimaryKey() === openpgp.enums.keyStatus.valid;
+      uiKey.status = await key.verifyPrimaryKey();
     } catch (e) {
-      uiKey.validity = false;
+      uiKey.status = 0;
       console.log(`Error in mapKeys on verifyPrimaryKey for key ${key.keyPacket.getFingerprint()}.`, e);
     }
+    uiKey.validity = uiKey.status === openpgp.enums.keyStatus.valid;
     uiKey.keyId = key.primaryKey.getKeyId().toHex().toUpperCase();
     uiKey.fingerprint = key.primaryKey.getFingerprint();
     // primary user
@@ -152,6 +153,7 @@ export async function mapSubKeys(subkeys = [], toKey, primaryKey) {
   await Promise.all(subkeys.map(async subkey => {
     try {
       const skey = {};
+      skey.status = await subkey.verify(primaryKey);
       skey.crDate = subkey.keyPacket.created.toISOString();
       skey.exDate = await subkey.getExpirationTime(primaryKey);
       if (skey.exDate === Infinity) {
@@ -171,8 +173,10 @@ export async function mapSubKeys(subkeys = [], toKey, primaryKey) {
   }));
 }
 
-export async function mapUsers(users = [], toKey, keyring, primaryKey) {
+export async function mapUsers(users = [], toKey, keyring, key) {
   toKey.users = [];
+  const {user: {userId: {userid: primaryUserId}}} = await key.getPrimaryUser();
+  console.log(primaryUserId);
   await Promise.all(users.map(async user => {
     try {
       const uiUser = {};
@@ -180,18 +184,16 @@ export async function mapUsers(users = [], toKey, keyring, primaryKey) {
         // filter out user attribute packages
         return;
       }
-      console.log(user);
       uiUser.userId = user.userId.userid;
       uiUser.email = user.userId.email;
       uiUser.name = user.userId.name;
+      uiUser.isPrimary = user.userId.userid === primaryUserId;
+      uiUser.status = await user.verify(key.primaryKey);
       uiUser.signatures = [];
       if (!user.selfCertifications) {
         return;
       }
       for (const selfCert of user.selfCertifications) {
-        if (await verifyUserCertificate(user, primaryKey, selfCert) !== openpgp.enums.keyStatus.valid) {
-          continue;
-        }
         const sig = {};
         sig.signer = {
           userid: user.userId.userid,
@@ -211,7 +213,7 @@ export async function mapUsers(users = [], toKey, keyring, primaryKey) {
         const issuerKeys = keyring.getKeysForId(keyidHex);
         if (issuerKeys) {
           const [{keyPacket: signingKeyPacket}] = issuerKeys[0].getKeys(otherCert.issuerKeyId);
-          if (signingKeyPacket && await verifyUserCertificate(user, primaryKey, otherCert, signingKeyPacket) === openpgp.enums.keyStatus.valid) {
+          if (signingKeyPacket && await verifyUserCertificate(user, key.primaryKey, otherCert, signingKeyPacket) === openpgp.enums.keyStatus.valid) {
             sig.signer = await getUserInfo(issuerKeys[0]);
           } else {
             // invalid signature

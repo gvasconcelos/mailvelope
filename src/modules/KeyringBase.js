@@ -69,7 +69,7 @@ export default class KeyringBase {
       // subkeys
       await mapSubKeys(key.subKeys, details, key.primaryKey);
       // users
-      await mapUsers(key.users, details, this.keystore, key.primaryKey);
+      await mapUsers(key.users, details, this.keystore, key);
       // key is valid default key
       details.validDefaultKey = await this.validateDefaultKey(key);
       return details;

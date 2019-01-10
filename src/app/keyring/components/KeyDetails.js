@@ -11,6 +11,7 @@ import * as l10n from '../../../lib/l10n';
 import DatePicker from './DatePicker';
 import DefinePassword from './DefinePassword';
 import KeySelect from './KeySelect';
+import KeyStatus from './KeyStatus';
 import ModalDialog from '../../../components/util/ModalDialog';
 
 import './KeyDetails.css';
@@ -67,9 +68,9 @@ export default class KeyDetails extends React.Component {
     }
   }
 
-  getAllKeys({algorithm, bitLength, crDate, exDate, fingerprint, keyId, subkeys}) {
+  getAllKeys({status, algorithm, bitLength, crDate, exDate, fingerprint, keyId, subkeys}) {
     return [
-      {crDate, exDate, keyId, algorithm, bitLength, fingerprint},
+      {status, crDate, exDate, keyId, algorithm, bitLength, fingerprint},
       ...subkeys
     ];
   }
@@ -157,7 +158,7 @@ export default class KeyDetails extends React.Component {
                   <div className="form-group">
                     <label className="col-sm-3 control-label">{l10n.map.keygrid_validity_status}</label>
                     <div className="col-sm-9 text-only">
-                      <span className={`label label-${selectedKey.validity ? 'success' : 'danger'}`}>{selectedKey.validity ? l10n.map.keygrid_status_valid : l10n.map.keygrid_status_invalid}</span>
+                      <KeyStatus status={selectedKey.status} />
                     </div>
                   </div>
                   <div className="form-group">
