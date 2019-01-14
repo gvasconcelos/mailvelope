@@ -178,6 +178,7 @@ export async function mapUsers(users = [], toKey, keyring, key) {
   const {user: {userId: {userid: primaryUserId}}} = await key.getPrimaryUser();
   console.log(primaryUserId);
   await Promise.all(users.map(async user => {
+    console.log(user);
     try {
       const uiUser = {};
       if (!user.userId) {

@@ -50,7 +50,7 @@ export default class User extends React.Component {
       errors: {},
       user: null,
       keyDetails: {
-        ...props.keys[props.match.params.keyIdx]
+        ...props.keyData
       }
     };
     this.handleDelete = this.handleDelete.bind(this);
@@ -68,6 +68,7 @@ export default class User extends React.Component {
     let user = {};
     if (this.props.match.params.userIdx !== 'add') {
       const result = await port.send('getKeyDetails', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
+      console.log(result);
       user = {
         signatures: result.users[this.props.match.params.userIdx].signatures,
         name: result.users[this.props.match.params.userIdx].name,
@@ -264,7 +265,7 @@ export default class User extends React.Component {
 User.contextType = KeyringOptions;
 
 User.propTypes = {
-  keys: PropTypes.array,
+  keyData: PropTypes.object,
   match: PropTypes.object
 };
 

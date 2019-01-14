@@ -41,15 +41,16 @@ export default class KeyDetails extends React.Component {
     super(props);
     const keys = this.getAllKeys(props.keyDetails);
     const defaultKeyIdx = 0;
+    const normalizedExDate = keys[defaultKeyIdx].exDate !== false ? keys[defaultKeyIdx].exDate : null;
     this.state = {
       showExDateModal: false,
       showPwdModal: false,
       keys,
       selectedKeyIdx: defaultKeyIdx,
-      exDateInput: keys[defaultKeyIdx].exDate,
+      exDateInput: normalizedExDate,
       /* dummy for passwordInput data */
       passwordInput: 'abc123',
-      keyExpirationTime: keys[defaultKeyIdx].exDate !== false ? moment(keys[defaultKeyIdx].exDate) : null,
+      keyExpirationTime: moment(normalizedExDate),
       passwordCurrent: '',
       password: '',
       passwordCheck: '',
@@ -87,13 +88,16 @@ export default class KeyDetails extends React.Component {
   }
 
   handleChangeKey(selectedKeyIdx) {
-    this.setState(prevState => ({
-      selectedKeyIdx,
-      exDateInput: prevState.keys[selectedKeyIdx].exDate,
-      keyExpirationTime: moment(prevState.keys[selectedKeyIdx].exDate),
-      /* dummy data */
-      passwordInput: prevState.passwordInput
-    }));
+    this.setState(prevState => {
+      const normalizedExDate = prevState.keys[selectedKeyIdx].exDate !== false ? prevState.keys[selectedKeyIdx].exDate : null;
+      return {
+        selectedKeyIdx,
+        exDateInput: normalizedExDate,
+        keyExpirationTime: moment(normalizedExDate),
+        /* dummy data */
+        passwordInput: prevState.passwordInput
+      };
+    });
   }
 
   handleChangeExDate() {
@@ -140,8 +144,6 @@ export default class KeyDetails extends React.Component {
 
   render() {
     const selectedKey = this.state.keys[this.state.selectedKeyIdx];
-    /* dummy data as validity is not yet in keydetails users */
-    selectedKey.validity = true;
     return (
       <div className="keyDetails">
         <div className="panel panel-default">

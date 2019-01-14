@@ -51,11 +51,11 @@ export default class Key extends React.Component {
       isDeleted: false,
       modal: null,
       keyDetails: {
-        ...props.keys[props.match.params.keyIdx],
+        ...props.keyData,
         users: [],
         subkeys: []
       },
-      isDefault: props.defaultKeyFpr === props.keys[props.match.params.keyIdx].fingerprint
+      isDefault: props.defaultKeyFpr === props.keyData.fingerprint
     };
     this.handleDelete = this.handleDelete.bind(this);
     this.handleDefaultClick = this.handleDefaultClick.bind(this);
@@ -234,7 +234,8 @@ export default class Key extends React.Component {
 Key.contextType = KeyringOptions;
 
 Key.propTypes = {
-  keys: PropTypes.array,
+  keyData: PropTypes.object,
+  getKeyDetails: PropTypes.func,
   defaultKeyFpr: PropTypes.string,
   onChangeDefaultKey: PropTypes.func,
   onKeyringChange: PropTypes.func,
