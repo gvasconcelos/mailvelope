@@ -27,6 +27,7 @@ var mvelo = mvelo || null; // eslint-disable-line no-var
     'pwd_dialog_keyid_tooltip',
     'pwd_dialog_reason_decrypt',
     'pwd_dialog_reason_sign',
+    'pwd_dialog_reason_revoke',
     'pwd_dialog_reason_editor',
     'pwd_dialog_reason_create_backup',
     'pwd_dialog_reason_create_draft'

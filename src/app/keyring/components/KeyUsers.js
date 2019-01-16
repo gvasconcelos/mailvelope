@@ -41,7 +41,7 @@ export default class KeyUsers extends React.Component {
     super(props);
     this.state = {
       selectedUser: null,
-      validity: true
+      allowSetPrimaryUser: false
     };
   }
 
@@ -66,7 +66,7 @@ export default class KeyUsers extends React.Component {
         <div className="panel panel-default">
           <div className="panel-heading clearfix">
             <h4 className="pull-left text-muted">Zugeordnete Benutzer IDs</h4>
-            {this.props.keyType !== 'public' && <Link to={`/keyring/key/${this.props.keyIndex}/user/add`} className="btn btn-sm btn-default pull-right" replace tabIndex="0">Neue hinzufügen</Link>}
+            {(this.props.keyType !== 'public' && this.props.keyValidity) && <Link to={`/keyring/key/${this.props.keyIndex}/user/add`} className="btn btn-sm btn-default pull-right" replace tabIndex="0">Neue hinzufügen</Link>}
           </div>
           <table className="table table-hover">
             <thead>
@@ -83,7 +83,7 @@ export default class KeyUsers extends React.Component {
               { this.props.users.map((user, index) =>
                 <tr key={index} onClick={e => this.showUserDetails(e, index)} onKeyPress={e => this.handleKeyPress(e, index)} tabIndex="0" aria-haspopup="true">
                   <td className="text-center">
-                    {this.props.keyType === 'private'
+                    {(this.props.keyType === 'private' && this.state.allowSetPrimaryUser)
                       ? (<label>
                         <input type="radio" onChange={e => this.props.onChangePrimaryUser(e.target.value)} name="isPrimaryUser" value={index} checked={user.isPrimary} />
                       </label>)
@@ -112,5 +112,6 @@ KeyUsers.propTypes = {
   users: PropTypes.array,
   keyType: PropTypes.string,
   keyIndex: PropTypes.string,
+  keyValidity: PropTypes.bool,
   onChangePrimaryUser: PropTypes.func
 };

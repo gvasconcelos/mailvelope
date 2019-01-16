@@ -67,7 +67,7 @@ export default class KeyringBase {
     if (keys) {
       const key = keys[0];
       // subkeys
-      await mapSubKeys(key.subKeys, details, key.primaryKey);
+      await mapSubKeys(key.subKeys, details, key);
       // users
       await mapUsers(key.users, details, this.keystore, key);
       // key is valid default key

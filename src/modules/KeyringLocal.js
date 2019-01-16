@@ -198,6 +198,20 @@ export default class KeyringLocal extends KeyringBase {
     await this.sync.commit();
   }
 
+  async revokeKey(unlockedKey) {
+    const {privateKey: revokedKey} = await openpgp.revokeKey({key: unlockedKey});
+    const defaultKeyFpr = await this.keystore.getDefaultKeyFpr();
+    if (defaultKeyFpr  === revokedKey.primaryKey.getFingerprint()) {
+      await this.setDefaultKey('');
+    }
+    this.sync.add(revokedKey.primaryKey.getFingerprint(), keyringSync.REVOKE);
+    const originalKey = this.getPrivateKeyByFpr(revokedKey.primaryKey.getFingerprint());
+    await originalKey.update(revokedKey);
+    await this.keystore.store();
+    await this.sync.commit();
+    return revokedKey;
+  }
+
   async generateKey(options) {
     const newKey = await super.generateKey(options);
     if (options.unlocked) {

@@ -148,12 +148,15 @@ function getAlgorithmString({algorithm, curve}) {
   return result;
 }
 
-export async function mapSubKeys(subkeys = [], toKey, primaryKey) {
+export async function mapSubKeys(subkeys = [], toKey, key) {
+  const primaryKey = key.primaryKey;
   toKey.subkeys = [];
   await Promise.all(subkeys.map(async subkey => {
     try {
       const skey = {};
-      skey.status = await subkey.verify(primaryKey);
+      const keyStatus = await key.verifyPrimaryKey();
+      const subKeyStatus = await subkey.verify(primaryKey);
+      skey.status = subKeyStatus < keyStatus ? subKeyStatus : keyStatus;
       skey.crDate = subkey.keyPacket.created.toISOString();
       skey.exDate = await subkey.getExpirationTime(primaryKey);
       if (skey.exDate === Infinity) {
@@ -176,7 +179,6 @@ export async function mapSubKeys(subkeys = [], toKey, primaryKey) {
 export async function mapUsers(users = [], toKey, keyring, key) {
   toKey.users = [];
   const {user: {userId: {userid: primaryUserId}}} = await key.getPrimaryUser();
-  console.log(primaryUserId);
   await Promise.all(users.map(async user => {
     console.log(user);
     try {
@@ -189,7 +191,9 @@ export async function mapUsers(users = [], toKey, keyring, key) {
       uiUser.email = user.userId.email;
       uiUser.name = user.userId.name;
       uiUser.isPrimary = user.userId.userid === primaryUserId;
-      uiUser.status = await user.verify(key.primaryKey);
+      const keyStatus = await key.verifyPrimaryKey();
+      const userStatus = await user.verify(key.primaryKey);
+      uiUser.status = userStatus < keyStatus ? userStatus : keyStatus;
       uiUser.signatures = [];
       if (!user.selfCertifications) {
         return;

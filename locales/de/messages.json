@@ -1185,6 +1185,10 @@
     "message": "Bitte Schlüssel-Passwort eingeben, um diese Nachricht zu versenden.",
     "description": ""
   },
+  "pwd_dialog_reason_revoke": {
+    "message": "Bitte Schlüssel-Passwort eingeben, um diesen Schlüssel für ungültig zu erklären.",
+    "description": ""
+  },    
   "pwd_dialog_title": {
     "message": "Passworteingabe | Mailvelope",
     "description": "Title of the password dialog."

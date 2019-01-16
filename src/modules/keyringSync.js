@@ -9,6 +9,7 @@ import {triggerSync} from '../controller/sync.controller';
 export const INSERT = 'INSERT';
 export const DELETE = 'DELETE';
 export const UPDATE = 'UPDATE';
+export const REVOKE = 'REVOKE';
 
 export class KeyringSync {
   constructor(keyringId) {
@@ -33,7 +34,7 @@ export class KeyringSync {
     if (!this.data || this.muted) {
       return;
     }
-    if (!(type === INSERT || type === DELETE || type === UPDATE)) {
+    if (!(type === INSERT || type === DELETE || type === UPDATE || type === REVOKE)) {
       throw new Error('Unknown log entry type');
     }
     this.data.modified = true;

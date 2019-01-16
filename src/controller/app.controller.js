@@ -30,6 +30,7 @@ export default class AppController extends sub.SubController {
     this.on('getWatchList', prefs.getWatchList);
     this.on('getKeys', ({keyringId}) => keyringById(keyringId).getKeys());
     this.on('removeKey', this.removeKey);
+    this.on('revokeKey', this.revokeKey);
     this.on('getArmoredKeys', this.getArmoredKeys);
     this.on('getKeyDetails', this.getKeyDetails);
     this.on('generateKey', this.generateKey);
@@ -66,6 +67,14 @@ export default class AppController extends sub.SubController {
 
   async removeKey({fingerprint, type, keyringId}) {
     const result = await keyringById(keyringId).removeKey(fingerprint, type);
+    this.sendKeyUpdate();
+    return result;
+  }
+
+  async revokeKey({fingerprint, keyringId}) {
+    const privateKey = keyringById(keyringId).getPrivateKeyByFpr(fingerprint);
+    const unlockedKey = await this.unlockKey({key: privateKey, reason: 'PWD_DIALOG_REASON_REVOKE'});
+    const result = await keyringById(keyringId).revokeKey(unlockedKey);
     this.sendKeyUpdate();
     return result;
   }
@@ -125,8 +134,8 @@ export default class AppController extends sub.SubController {
     this.decryptTextCtrl.decrypt(armored, mvelo.MAIN_KEYRING_ID);
   }
 
-  async unlockKey({key}) {
-    const privKey = await unlockQueue.push(sub.factory.get('pwdDialog'), 'unlockKey', [{key}]);
+  async unlockKey({key, reason = ''}) {
+    const privKey = await unlockQueue.push(sub.factory.get('pwdDialog'), 'unlockKey', [{key, reason}]);
     return privKey.key;
   }
 }

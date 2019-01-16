@@ -45,6 +45,7 @@ export default class Key extends React.Component {
     super(props);
     this.state = {
       loading: true,
+      processing: false,
       showDeleteModal: false,
       showExportModal: false,
       showRevokeModal: false,
@@ -66,6 +67,7 @@ export default class Key extends React.Component {
   componentDidMount() {
     console.log('Key component mounted!');
     this.getKeyDetails(this.context);
+    console.log(this.state);
   }
 
   async getKeyDetails({keyringId, demail}) {
@@ -102,9 +104,19 @@ export default class Key extends React.Component {
     this.setState({isDeleted: true}, this.props.onDeleteKey(this.state.keyDetails.fingerprint, this.state.keyDetails.type));
   }
 
-  handleRevoke() {
-    console.log('implement revoke key...');
-    this.modal.$node.modal('hide');
+  async handleRevoke() {
+    this.setState({processing: true});
+    try {
+      await port.send('revokeKey', {fingerprint: this.state.keyDetails.fingerprint, keyringId: this.context.keyringId});
+      this.props.onKeyringChange();
+    } catch (error) {
+      if (error.code !== 'PWD_DIALOG_CANCEL') {
+        throw error;
+      }
+    } finally {
+      this.processRevoke = false;
+      this.setState({processing: false});
+    }
   }
 
   handleSetPrimaryUser(userIdx) {
@@ -123,11 +135,16 @@ export default class Key extends React.Component {
     console.log('implement set new password...', pwd);
   }
 
-  handleHiddenModal() {
+  async handleHiddenModal() {
     if (this.processDelete) {
       this.handleDelete();
+    } else if (this.processRevoke) {
+      await this.handleRevoke();
     } else {
-      this.setState({showDeleteModal: false});
+      this.setState({
+        showDeleteModal: false,
+        showRevokeModal: false
+      });
     }
   }
 
@@ -153,7 +170,7 @@ export default class Key extends React.Component {
               <div className="navbar-form navbar-right">
                 <button type="button" onClick={() => this.setState({showDeleteModal: true})} className="btn btn-default">Entfernen</button>
                 <button type="button" onClick={() => this.setState({showExportModal: true})} className="btn btn-default margin-left-sm">Exportieren</button>
-                {this.state.keyDetails.type !== 'public' && <button type="button" onClick={() => this.setState({showRevokeModal: true})} className="btn btn-default margin-left-sm">Gültigkeit widerrufen</button>}
+                {this.state.keyDetails.type !== 'public' && <button type="button" onClick={() => this.setState({showRevokeModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.keyDetails.validity}>Gültigkeit widerrufen</button>}
                 { (!this.context.gnupg && this.state.keyDetails.type !== 'public') && <DefaultKeyButton className="margin-left-sm" onClick={this.handleDefaultClick} isDefault={this.state.isDefault} disabled={!this.state.keyDetails.validDefaultKey} />}
               </div>
             </div>
@@ -162,33 +179,33 @@ export default class Key extends React.Component {
         {this.state.loading ? (
           <Spinner delay={0} />
         ) : (
-          <>
-            <KeyUsers keyIndex={this.props.match.params.keyIdx} keyType={this.state.keyDetails.type} users={this.state.keyDetails.users} onChangePrimaryUser={userIdx => this.handleSetPrimaryUser(userIdx)} />
-            {this.state.keyDetails.keyServerState &&
-              this.state.keyDetails.keyServerState.sync
-              ? this.state.keyDetails.keyServerState.confirmed
-                ? (
-                  <Alert type="success">
-                    Der Schlüssel ist mit dem Mailvelope Server synchronisiert. <button type="button" onClick={() => this.handleKeyServerSync(false)} className="margin-left-md btn btn-sm btn-default">Wieder entfernen</button>
-                  </Alert>
-                ) : (
-                  <Alert type="warning">
-                    {`Zur Synchronisation des Schüssels mit dem Mailvelope Server wurde eine Bestätigungs-Email an ${this.state.keyDetails.email} versandt.`} <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Erneut senden</button>
-                  </Alert>
-                )
-              : this.state.keyDetails.keyServerState.confirmed
-                ? (
-                  <Alert type="danger">
-                    Der Schlüssel ist nicht mit dem Mailvelope Server synchronisiert. <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Synchronisieren</button>
-                  </Alert>
-                ) : (
-                  <Alert type="warning">
-                    {`Um den Schlüssel vom Mailvelope-Server zu löschen, wurde eine Bestätigungs-Email an ${this.state.keyDetails.email} versandt.`} <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Erneut senden</button>
-                  </Alert>
-                )
-            }
-            <KeyDetails keyDetails={this.state.keyDetails} onChangeExpDate={this.handleSetExDate} onChangePwd={this.handleSetPwd}></KeyDetails>
-          </>
+        <>
+          <KeyUsers keyIndex={this.props.match.params.keyIdx} keyType={this.state.keyDetails.type} keyValidity={this.state.keyDetails.validity} users={this.state.keyDetails.users} onChangePrimaryUser={userIdx => this.handleSetPrimaryUser(userIdx)} />
+          {this.state.keyDetails.keyServerState &&
+            this.state.keyDetails.keyServerState.sync
+            ? this.state.keyDetails.keyServerState.confirmed
+              ? (
+                <Alert type="success">
+                  Der Schlüssel ist mit dem Mailvelope Server synchronisiert. <button type="button" onClick={() => this.handleKeyServerSync(false)} className="margin-left-md btn btn-sm btn-default">Wieder entfernen</button>
+                </Alert>
+              ) : (
+                <Alert type="warning">
+                  {`Zur Synchronisation des Schüssels mit dem Mailvelope Server wurde eine Bestätigungs-Email an ${this.state.keyDetails.email} versandt.`} <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Erneut senden</button>
+                </Alert>
+              )
+            : this.state.keyDetails.keyServerState.confirmed
+              ? (
+                <Alert type="danger">
+                  Der Schlüssel ist nicht mit dem Mailvelope Server synchronisiert. <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Synchronisieren</button>
+                </Alert>
+              ) : (
+                <Alert type="warning">
+                  {`Um den Schlüssel vom Mailvelope-Server zu löschen, wurde eine Bestätigungs-Email an ${this.state.keyDetails.email} versandt.`} <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Erneut senden</button>
+                </Alert>
+              )
+          }
+          <KeyDetails keyDetails={this.state.keyDetails} onChangeExpDate={this.handleSetExDate} onChangePwd={this.handleSetPwd}></KeyDetails>
+        </>
         )}
         {this.state.showDeleteModal &&
           <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Benutzer ID entfernen" hideFooter={true} onHide={this.handleHiddenModal}>
@@ -205,13 +222,16 @@ export default class Key extends React.Component {
             </div>
           </ModalDialog>
         }
+        {this.state.processing &&
+          <Spinner fullscreen={true} delay={0} />
+        }
         {this.state.showExportModal &&
           <ModalDialog ref={modal => this.modal = modal} size="medium" headerClass="text-center" title="Schlüssel exportieren" hideFooter={true} onHide={() => this.setState({showExportModal: false})}>
             <KeyExport keyringId={this.context.keyringId} keyFprs={[this.state.keyDetails.fingerprint]} keyName={this.state.keyDetails.name} publicOnly={this.context.gnupg} onClose={() => this.modal.$node.modal('hide')} />
           </ModalDialog>
         }
         {this.state.showRevokeModal &&
-          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Gültigkeit widerrufen" hideFooter={true} onHide={() => this.setState({showRevokeModal: false})}>
+          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Gültigkeit widerrufen" hideFooter={true} onHide={this.handleHiddenModal}>
             <div className="text-center">
               <p>Mit dem Widerruf wird der Schlüssel permanant unbrauchbar gemacht.</p>
               <p><strong>Möchtest du trotzdem wiederrufen?</strong></p>
@@ -220,7 +240,7 @@ export default class Key extends React.Component {
                   <button type="button" className="btn btn-default btn-block" data-dismiss="modal">Nein</button>
                 </div>
                 <div className="col-xs-6">
-                  <button type="button" onClick={this.handleRevoke} className="btn btn-primary btn-block">Ja</button>
+                  <button type="button" onClick={() => this.processRevoke = true} className="btn btn-primary btn-block" data-dismiss="modal">Ja</button>
                 </div>
               </div>
             </div>

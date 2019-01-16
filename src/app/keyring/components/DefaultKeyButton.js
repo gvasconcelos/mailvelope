@@ -37,7 +37,7 @@ export default class DefaultKeyButton extends React.Component {
         ) :
         this.props.disabled
           ? (
-            <div ref={node => this.defaultButton = node} data-toggle="tooltip" data-placement="top" title={l10n.map.invalid_default_key}>
+            <div ref={node => this.defaultButton = node} style={{display: 'inline-block'}} data-toggle="tooltip" data-placement="top" title={l10n.map.invalid_default_key}>
               <button type="button" className={`btn btn-default disabled ${this.props.className || ''}`}>
                 {l10n.map.key_set_as_default}
               </button>
