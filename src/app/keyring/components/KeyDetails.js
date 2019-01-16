@@ -41,7 +41,7 @@ export default class KeyDetails extends React.Component {
     super(props);
     const keys = this.getAllKeys(props.keyDetails);
     const defaultKeyIdx = 0;
-    const normalizedExDate = keys[defaultKeyIdx].exDate !== false ? keys[defaultKeyIdx].exDate : null;
+    const normalizedExDate = this.normalizeDate(keys[defaultKeyIdx].exDate);
     this.state = {
       showExDateModal: false,
       showPwdModal: false,
@@ -50,7 +50,7 @@ export default class KeyDetails extends React.Component {
       exDateInput: normalizedExDate,
       /* dummy for passwordInput data */
       passwordInput: 'abc123',
-      keyExpirationTime: moment(normalizedExDate),
+      keyExpirationTime: normalizedExDate,
       passwordCurrent: '',
       password: '',
       passwordCheck: '',
@@ -60,13 +60,19 @@ export default class KeyDetails extends React.Component {
     this.handleChangeKey = this.handleChangeKey.bind(this);
     this.handleChangeExDate = this.handleChangeExDate.bind(this);
     this.handleChangePwd = this.handleChangePwd.bind(this);
+    this.validateChangePwd = this.validateChangePwd.bind(this);
     this.cleanUpPwdData = this.cleanUpPwdData.bind(this);
+    this.handleHiddenModal = this.handleHiddenModal.bind(this);
   }
 
   componentDidUpdate(prevProps) {
     if (this.props.keyDetails !== prevProps.keyDetails) {
       this.setState({keys: this.getAllKeys(this.props.keyDetails)});
     }
+  }
+
+  normalizeDate(date) {
+    return date !== false ? moment(date) : null;
   }
 
   getAllKeys({status, algorithm, bitLength, crDate, exDate, fingerprint, keyId, subkeys}) {
@@ -89,32 +95,40 @@ export default class KeyDetails extends React.Component {
 
   handleChangeKey(selectedKeyIdx) {
     this.setState(prevState => {
-      const normalizedExDate = prevState.keys[selectedKeyIdx].exDate !== false ? prevState.keys[selectedKeyIdx].exDate : null;
+      const normalizedExDate = this.normalizeDate(prevState.keys[selectedKeyIdx].exDate);
       return {
         selectedKeyIdx,
         exDateInput: normalizedExDate,
-        keyExpirationTime: moment(normalizedExDate),
+        keyExpirationTime: normalizedExDate,
         /* dummy data */
         passwordInput: prevState.passwordInput
       };
     });
   }
 
-  handleChangeExDate() {
+  async handleChangeExDate() {
     const isoTimeString = this.state.keyExpirationTime !== null ? this.state.keyExpirationTime.toISOString() : false;
     if (this.state.keys[this.state.selectedKeyIdx].exDate !== isoTimeString) {
-      this.props.onChangeExpDate(isoTimeString);
-      this.setState({exDateInput: isoTimeString});
+      try {
+        await this.props.onChangeExpDate(isoTimeString);
+        this.setState(prevSate => ({
+          exDateInput: prevSate.keyExpirationTime
+        }));
+      } catch (error) {
+        if (error.code !== 'PWD_DIALOG_CANCEL') {
+          throw error;
+        }
+      } finally {
+        this.processSetExDate = false;
+      }
     }
-    this.modal.$node.modal('hide');
   }
 
-  handleChangePwd() {
+  async validateChangePwd() {
     const errors = {};
 
-    /* password has to be fetched from backend*/
-    // if (this.state.keys[this.state.selectedKeyIdx].pwd !== this.state.passwordInput) {
-    if (this.state.passwordCurrent !== this.state.passwordInput) {
+    const pwdIsValid = await this.props.onValidateKeyPwd(this.state.passwordCurrent);
+    if (!pwdIsValid) {
       errors.passwordCurrent = new Error();
     }
     if (!this.state.password.length) {
@@ -128,8 +142,20 @@ export default class KeyDetails extends React.Component {
       return;
     }
 
-    this.props.onChangePwd(this.state.password);
+    this.processChangePwd = true;
     this.modal.$node.modal('hide');
+  }
+
+  async handleChangePwd() {
+    try {
+      await this.props.onChangePwd(this.state.passwordCurrent, this.state.password);
+    } catch (error) {
+      if (error.code !== 'PWD_DIALOG_CANCEL') {
+        throw error;
+      }
+    } finally {
+      this.processChangePwd = false;
+    }
   }
 
   cleanUpPwdData() {
@@ -141,6 +167,20 @@ export default class KeyDetails extends React.Component {
       errors: {}
     });
   }
+
+  async handleHiddenModal() {
+    if (this.processSetExDate) {
+      await this.handleChangeExDate();
+    } else if (this.processChangePwd) {
+      await this.handleChangePwd();
+    }
+    this.cleanUpPwdData();
+    this.setState(prevSate => ({
+      showExDateModal: false,
+      keyExpirationTime: prevSate.exDateInput
+    }));
+  }
+
 
   render() {
     const selectedKey = this.state.keys[this.state.selectedKeyIdx];
@@ -175,9 +215,9 @@ export default class KeyDetails extends React.Component {
                       { this.props.keyDetails.type !== 'public' && this.state.selectedKeyIdx === 0
                         ? (
                           <div className="input-group input-group-sm">
-                            <input type="text" readOnly className="form-control" value={this.state.exDateInput ? moment(this.state.exDateInput).format('L') : 'nie'} />
+                            <input type="text" readOnly className="form-control" value={this.state.exDateInput !== null ? this.state.exDateInput.format('L') : 'nie'} />
                             <span className="input-group-btn">
-                              <button onClick={() => this.setState({showExDateModal: true})} className="btn btn-sm btn-default" type="button">Ändern</button>
+                              <button onClick={() => this.setState({showExDateModal: true})} className="btn btn-sm btn-default" type="button" disabled={!this.props.keyDetails.validity}>Ändern</button>
                             </span>
                           </div>
                         ) : <div className="text-only">{selectedKey.exDate ? moment(selectedKey.exDate).format('L') : 'nie'}</div>
@@ -192,7 +232,7 @@ export default class KeyDetails extends React.Component {
                           <div className="input-group input-group-sm">
                             <input type="password" readOnly className="form-control" value={this.state.passwordInput} />
                             <span className="input-group-btn">
-                              <button onClick={() => this.setState({showPwdModal: true})} className="btn btn-default" type="button">Ändern</button>
+                              <button onClick={() => this.setState({showPwdModal: true})} className="btn btn-default" type="button" disabled={!this.props.keyDetails.validity}>Ändern</button>
                             </span>
                           </div>
                         ) : <div className="text-only">********</div>
@@ -231,7 +271,7 @@ export default class KeyDetails extends React.Component {
           </div>
         </div>
         {this.state.showExDateModal &&
-          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Ablaufdatum ändern" hideFooter={true} onHide={() => this.setState({showExDateModal: false})}>
+          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Ablaufdatum ändern" hideFooter={true} onHide={this.handleHiddenModal}>
             <>
               <div className="form-group">
                 <DatePicker value={this.state.keyExpirationTime} onChange={moment => this.handleChange({target: {id: 'keyExpirationTime', value: moment}})} placeholder={l10n.map.keygrid_key_not_expire} minDate={moment().add({days: 1})} maxDate={moment('2080-12-31')} disabled={false} />
@@ -241,14 +281,14 @@ export default class KeyDetails extends React.Component {
                   <button type="button" className="btn btn-default btn-block" data-dismiss="modal">Abbrechen</button>
                 </div>
                 <div className="col-xs-6">
-                  <button type="button" onClick={this.handleChangeExDate} className="btn btn-primary btn-block">Speichern</button>
+                  <button type="button" onClick={() => this.processSetExDate = true} className="btn btn-primary btn-block" data-dismiss="modal">Speichern</button>
                 </div>
               </div>
             </>
           </ModalDialog>
         }
         {this.state.showPwdModal &&
-          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Passwort ändern" hideFooter={true} onHide={this.cleanUpPwdData}>
+          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Passwort ändern" hideFooter={true} onHide={this.handleHiddenModal}>
             <form>
               <div className={`form-group ${this.state.errors.passwordCurrent ? ' has-error' : ''}`}>
                 <label className="control-label" htmlFor="passwordCurrent">Altes Password</label>
@@ -261,7 +301,7 @@ export default class KeyDetails extends React.Component {
                   <button type="button" className="btn btn-default btn-block" data-dismiss="modal">Abbrechen</button>
                 </div>
                 <div className="col-xs-6">
-                  <button type="button" onClick={this.handleChangePwd} className="btn btn-primary btn-block">Speichern</button>
+                  <button type="button" onClick={this.validateChangePwd} className="btn btn-primary btn-block">Speichern</button>
                 </div>
               </div>
             </form>
@@ -275,5 +315,6 @@ export default class KeyDetails extends React.Component {
 KeyDetails.propTypes = {
   keyDetails: PropTypes.object.isRequired,
   onChangeExpDate: PropTypes.func,
+  onValidateKeyPwd: PropTypes.func,
   onChangePwd: PropTypes.func
 };

@@ -7,6 +7,7 @@ import mvelo from '../lib/lib-mvelo';
 import * as sub from './sub.controller';
 import {initOpenPGP, decryptFile, encryptFile} from '../modules/pgpModel';
 import {getById as keyringById, getAllKeyringAttr, setKeyringAttr, deleteKeyring, getKeyData} from '../modules/keyring';
+import {get as getKeyPwdFromCache, unlock as unlockKey} from '../modules/pwdCache';
 import {initScriptInjection} from '../lib/inject';
 import * as prefs from '../modules/prefs';
 import * as uiLog from '../modules/uiLog';
@@ -31,6 +32,9 @@ export default class AppController extends sub.SubController {
     this.on('getKeys', ({keyringId}) => keyringById(keyringId).getKeys());
     this.on('removeKey', this.removeKey);
     this.on('revokeKey', this.revokeKey);
+    this.on('set-key-expiry-date', this.setKeyExDate);
+    this.on('set-key-password', this.setKeyPwd);
+    this.on('validate-key-password', this.validateKeyPassword);
     this.on('getArmoredKeys', this.getArmoredKeys);
     this.on('getKeyDetails', this.getKeyDetails);
     this.on('generateKey', this.generateKey);
@@ -77,6 +81,38 @@ export default class AppController extends sub.SubController {
     const result = await keyringById(keyringId).revokeKey(unlockedKey);
     this.sendKeyUpdate();
     return result;
+  }
+
+  async setKeyExDate({fingerprint, keyringId, newExDateISOString}) {
+    const privateKey = keyringById(keyringId).getPrivateKeyByFpr(fingerprint);
+    const unlockedKey = await this.unlockKey({key: privateKey, reason: 'PWD_DIALOG_REASON_SET_EXDATE'});
+    const newExDate = newExDateISOString !== false ? new Date(newExDateISOString) : false;
+    const result = await keyringById(keyringId).setKeyExDate(unlockedKey, newExDate);
+    this.sendKeyUpdate();
+    return result;
+  }
+
+  async setKeyPwd({fingerprint, keyringId, currentPassword, password}) {
+    const privateKey = keyringById(keyringId).getPrivateKeyByFpr(fingerprint);
+    const unlockedKey = await unlockKey({key: privateKey, password: currentPassword});
+    const result = await keyringById(keyringId).setKeyPwd(unlockedKey, password);
+    this.sendKeyUpdate();
+    return result;
+  }
+
+  async validateKeyPassword({fingerprint, keyringId, password}) {
+    const cached = getKeyPwdFromCache(fingerprint);
+    if (typeof cached !== 'undefined' && typeof cached.password !== 'undefined') {
+      return password === cached.password;
+    } else {
+      const key = keyringById(keyringId).getPrivateKeyByFpr(fingerprint);
+      try {
+        await unlockKey({key, password});
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
   }
 
   getArmoredKeys({keyFprs, options, keyringId}) {

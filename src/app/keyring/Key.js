@@ -61,13 +61,14 @@ export default class Key extends React.Component {
     this.handleDelete = this.handleDelete.bind(this);
     this.handleDefaultClick = this.handleDefaultClick.bind(this);
     this.handleRevoke = this.handleRevoke.bind(this);
+    this.handleSetExDate = this.handleSetExDate.bind(this);
+    this.handleChangePwd = this.handleChangePwd.bind(this);
     this.handleHiddenModal = this.handleHiddenModal.bind(this);
+    this.validateKeyPassword = this.validateKeyPassword.bind(this);
   }
 
   componentDidMount() {
-    console.log('Key component mounted!');
     this.getKeyDetails(this.context);
-    console.log(this.state);
   }
 
   async getKeyDetails({keyringId, demail}) {
@@ -104,6 +105,11 @@ export default class Key extends React.Component {
     this.setState({isDeleted: true}, this.props.onDeleteKey(this.state.keyDetails.fingerprint, this.state.keyDetails.type));
   }
 
+
+  async validateKeyPassword(password) {
+    return port.send('validate-key-password', {fingerprint: this.state.keyDetails.fingerprint, keyringId: this.context.keyringId, password});
+  }
+
   async handleRevoke() {
     this.setState({processing: true});
     try {
@@ -127,12 +133,28 @@ export default class Key extends React.Component {
     console.log('implement keyserver syn', sync);
   }
 
-  handleSetExDate(date) {
-    console.log('implement set new expiry date...', date);
+  async handleSetExDate(newExDateISOString) {
+    this.setState({processing: true});
+    try {
+      await port.send('set-key-expiry-date', {fingerprint: this.state.keyDetails.fingerprint, keyringId: this.context.keyringId, newExDateISOString});
+      this.props.onKeyringChange();
+    } catch (error) {
+      throw error;
+    } finally {
+      this.setState({processing: false});
+    }
   }
 
-  handleSetPwd(pwd) {
-    console.log('implement set new password...', pwd);
+  async handleChangePwd(currentPassword, password) {
+    this.setState({processing: true});
+    try {
+      await port.send('set-key-password', {fingerprint: this.state.keyDetails.fingerprint, keyringId: this.context.keyringId, currentPassword, password});
+      this.props.onKeyringChange();
+    } catch (error) {
+      throw error;
+    } finally {
+      this.setState({processing: false});
+    }
   }
 
   async handleHiddenModal() {
@@ -143,7 +165,7 @@ export default class Key extends React.Component {
     } else {
       this.setState({
         showDeleteModal: false,
-        showRevokeModal: false
+        showRevokeModal: false,
       });
     }
   }
@@ -204,7 +226,7 @@ export default class Key extends React.Component {
                 </Alert>
               )
           }
-          <KeyDetails keyDetails={this.state.keyDetails} onChangeExpDate={this.handleSetExDate} onChangePwd={this.handleSetPwd}></KeyDetails>
+          <KeyDetails keyDetails={this.state.keyDetails} onChangeExpDate={this.handleSetExDate} onValidateKeyPwd={this.validateKeyPassword} onChangePwd={this.handleChangePwd}></KeyDetails>
         </>
         )}
         {this.state.showDeleteModal &&

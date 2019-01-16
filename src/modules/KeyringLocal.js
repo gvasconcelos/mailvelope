@@ -212,6 +212,29 @@ export default class KeyringLocal extends KeyringBase {
     return revokedKey;
   }
 
+  async setKeyExDate(unlockedKey, newExDate) {
+    const keyExpirationTime = newExDate ? (newExDate.getTime() - unlockedKey.primaryKey.created.getTime()) / 1000 : 0;
+    const {user: {userId: {email, name}}} = await unlockedKey.getPrimaryUser();
+    const {key: updatedKey} = await openpgp.reformatKey({privateKey: unlockedKey, userIds: [{name, email}], keyExpirationTime});
+    this.sync.add(updatedKey.primaryKey.getFingerprint(), keyringSync.UPDATE);
+    const originalKey = this.getPrivateKeyByFpr(updatedKey.primaryKey.getFingerprint());
+    await originalKey.update(updatedKey);
+    await this.keystore.store();
+    await this.sync.commit();
+    return updatedKey;
+  }
+
+  async setKeyPwd(unlockedKey, passphrase) {
+    const {user: {userId: {email, name}}} = await unlockedKey.getPrimaryUser();
+    const {key: updatedKey} = await openpgp.reformatKey({privateKey: unlockedKey, userIds: [{name, email}], passphrase});
+    this.sync.add(updatedKey.primaryKey.getFingerprint(), keyringSync.UPDATE);
+    const originalKey = this.getPrivateKeyByFpr(updatedKey.primaryKey.getFingerprint());
+    await originalKey.update(updatedKey);
+    await this.keystore.store();
+    await this.sync.commit();
+    return updatedKey;
+  }
+
   async generateKey(options) {
     const newKey = await super.generateKey(options);
     if (options.unlocked) {
