@@ -42,20 +42,25 @@ export default class User extends React.Component {
     super(props);
     this.state = {
       loading: true,
+      processing: false,
+      showDetails: false,
       exit: false,
       showDeleteModal: false,
       showRevokeModal: false,
       hasChanged: false,
       modal: null,
       errors: {},
-      user: null,
+      user: {
+        name: '',
+        email: ''
+      },
       keyDetails: {
         ...props.keyData
       }
     };
     this.handleDelete = this.handleDelete.bind(this);
     this.handleChange = this.handleChange.bind(this);
-    this.handleSave = this.handleSave.bind(this);
+    this.handleAdd = this.handleAdd.bind(this);
     this.handleRevoke = this.handleRevoke.bind(this);
     this.handleHiddenModal = this.handleHiddenModal.bind(this);
   }
@@ -64,21 +69,34 @@ export default class User extends React.Component {
     this.getKeyDetails(this.context);
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.keyData !== prevProps.keyData) {
+      this.getKeyDetails(this.context);
+    }
+  }
+
   async getKeyDetails({keyringId}) {
     let user = {};
+    let allowToRemove = false;
+    let allowToRevoke = false;
     if (this.props.match.params.userIdx !== 'add') {
       const result = await port.send('getKeyDetails', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
-      console.log(result);
+      const {signatures, userId, name, email, status} = result.users.find(user => user.id == this.props.match.params.userIdx);
+      allowToRemove = ((result.users.filter(user => user.status === 3).length > 1) || status < 3) && this.state.keyDetails.status === 3,
+      allowToRevoke = (result.users.filter(user => user.status === 3).length > 1) && status === 3,
       user = {
-        signatures: result.users[this.props.match.params.userIdx].signatures,
-        name: result.users[this.props.match.params.userIdx].name,
-        email: result.users[this.props.match.params.userIdx].email,
-        status: result.users[this.props.match.params.userIdx].status,
+        signatures,
+        userId,
+        name,
+        email,
+        status,
         crDate: new Date().toISOString(),
         exDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()
       };
     }
     this.setState(prevState => ({
+      allowToRemove,
+      allowToRevoke,
       loading: false,
       user,
       keyDetails: {
@@ -102,34 +120,71 @@ export default class User extends React.Component {
     });
   }
 
-  handleSave() {
+  async handleAdd() {
+    const errors = {};
     const validEmail = mvelo.util.checkEmail(this.state.user.email);
     if (!validEmail) {
-      this.setState({errors: {email: new Error()}});
+      errors.email = new Error();
+    }
+    if (Object.keys(errors).length) {
+      this.setState({errors});
       return;
     }
-    if (this.props.match.params.userIdx === 'add') {
-      console.log('implement add user...');
-    } else {
-      console.log('implement save user...');
+    this.setState({processing: true});
+    try {
+      await port.send('add-user', {fingerprint: this.state.keyDetails.fingerprint, user: this.state.user, keyringId: this.context.keyringId});
+      this.setState({exit: true}, () => this.props.onKeyringChange());
+    } catch (error) {
+      if (error.code !== 'PWD_DIALOG_CANCEL') {
+        throw error;
+      }
+      this.setState({processing: false});
     }
-    this.setState({exit: true});
   }
 
-  handleDelete() {
-    this.setState({exit: true}, console.log('implement remove user...'));
+  async handleDelete() {
+    this.setState({processing: true});
+    try {
+      await port.send('remove-user', {fingerprint: this.state.keyDetails.fingerprint, userId: this.state.user.userId, keyringId: this.context.keyringId});
+      this.setState({exit: true}, () => this.props.onKeyringChange());
+    } catch (e) {
+      this.processDelete = false;
+      this.setState({
+        processing: false,
+        showDeleteModal: false
+      });
+      throw e;
+    }
   }
 
-  handleRevoke() {
-    console.log('implement revoke user...');
-    this.modal.$node.modal('hide');
+  async handleRevoke() {
+    this.setState({processing: true});
+    try {
+      await port.send('revoke-user', {fingerprint: this.state.keyDetails.fingerprint, userId: this.state.user.userId, keyringId: this.context.keyringId});
+      this.props.onKeyringChange();
+    } catch (error) {
+      if (error.code !== 'PWD_DIALOG_CANCEL') {
+        throw error;
+      }
+    } finally {
+      this.processRevoke = false;
+      this.setState({
+        processing: false,
+        showRevokeModal: false
+      });
+    }
   }
 
   handleHiddenModal() {
     if (this.processDelete) {
       this.handleDelete();
+    } else if (this.processRevoke) {
+      this.handleRevoke();
     } else {
-      this.setState({showDeleteModal: false});
+      this.setState({
+        showDeleteModal: false,
+        showRevokeModal: false
+      });
     }
   }
 
@@ -143,40 +198,46 @@ export default class User extends React.Component {
         <ol className="breadcrumb">
           <li><Link to={`/keyring/key/${this.props.match.params.keyIdx}`} replace tabIndex="0"><span className="glyphicon glyphicon-menu-left" aria-hidden="true"></span> {this.state.keyDetails.name}</Link></li>
         </ol>
-        <nav className="navbar">
-          <div className="container-fluid">
-            <div className="navbar-header">
-              <div className="navbar-brand">
-                <span>{this.props.match.params.userIdx !== 'add' ? (this.state.keyDetails.type !== 'public' ? 'Benutzer ID bearbeiten' : 'Benutzer ID anzeigen') : 'Benutzer ID erstellen'}</span>
-              </div>
-            </div>
-            { this.state.keyDetails.type !== 'public' &&
-            <div className="collapse navbar-collapse">
-              <div className="navbar-form navbar-right">
-                { this.state.hasChanged || this.props.match.params.userIdx === 'add'
-                  ? <button type="button" onClick={this.handleSave} className="btn btn-primary">{this.props.match.params.userIdx === 'add' ? 'Erstellen' : 'Speichern'}</button>
-                  : <Link className="btn btn-default" role="button" to={`/keyring/key/${this.props.match.params.keyIdx}`} replace tabIndex="0">Fertig</Link>
-                }
-                {
-                  this.props.match.params.userIdx !== 'add' && (
-                    <>
-                      <button type="button" onClick={() => this.setState({showDeleteModal: true})} className="btn btn-default margin-left-sm">Entfernen</button>
-                      <button type="button" onClick={() => this.setState({showRevokeModal: true})} className="btn btn-default margin-left-sm">Gültigkeit widerrufen</button>
-                    </>
-                  )
-                }
-              </div>
-            </div>
-            }
-          </div>
-        </nav>
         {this.state.loading ? (
           <Spinner delay={0} />
         ) : (
           <>
+            <nav className="navbar">
+              <div className="container-fluid">
+                <div className="navbar-header">
+                  <div className="navbar-brand">
+                    {this.props.match.params.userIdx !== 'add' ?
+                      (
+                        <>
+                          <span>Benutzer ID</span>
+                          <KeyStatus className="margin-left-sm" status={this.state.user.status} />
+                        </>
+                      ) : (
+                        <span>Benutzer erstellen</span>
+                      )
+                    }
+                  </div>
+                </div>
+                { this.state.keyDetails.type !== 'public' &&
+                <div className="collapse navbar-collapse">
+                  <div className="navbar-form navbar-right">
+                    {this.props.match.params.userIdx === 'add' && <button type="button" onClick={this.handleAdd} className="btn btn-primary">Speichern</button>}
+                    {this.props.match.params.userIdx !== 'add' &&
+                      (
+                        <>
+                          <button type="button" onClick={() => this.setState({showDeleteModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.allowToRemove}>Entfernen</button>
+                          <button type="button" onClick={() => this.setState({showRevokeModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.allowToRevoke}>Gültigkeit widerrufen</button>
+                        </>
+                      )
+                    }
+                  </div>
+                </div>
+                }
+              </div>
+            </nav>
             <div className="row margin-bottom-xl">
               <div className="col-sm-6">
-                {this.state.keyDetails.type !== 'public' || this.props.match.params.userIdx === 'add'
+                {this.props.match.params.userIdx === 'add'
                   ? (
                     <form>
                       <NameAddrInput name={this.state.user.name || ''} email={this.state.user.email || ''} onChange={this.handleChange} errors={this.state.errors} />
@@ -199,7 +260,7 @@ export default class User extends React.Component {
                   )}
               </div>
               <div className="col-sm-6 col-md-5 col-md-offset-1">
-                {this.props.match.params.userIdx !== 'add' && (
+                {(this.props.match.params.userIdx !== 'add' && this.state.showDetails) && (
                   <div className="form-horizontal margin-top-md">
                     <div className="form-group">
                       <label className="col-sm-4 col-lg-3 control-label">{l10n.map.keygrid_validity_status}</label>
@@ -226,6 +287,9 @@ export default class User extends React.Component {
             {this.state.user.signatures && <UserSignatures signatures={this.state.user.signatures} />}
           </>
         )}
+        {this.state.processing &&
+          <Spinner fullscreen={true} delay={0} />
+        }
         {this.state.showDeleteModal &&
           <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Benutzer ID entfernen" hideFooter={true} onHide={this.handleHiddenModal}>
             <div className="text-center">
@@ -242,7 +306,7 @@ export default class User extends React.Component {
           </ModalDialog>
         }
         {this.state.showRevokeModal &&
-          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Gültigkeit widerrufen" hideFooter={true} onHide={() => this.setState({showRevokeModal: false})}>
+          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Gültigkeit widerrufen" hideFooter={true} onHide={this.handleHiddenModal}>
             <div className="text-center">
               <p>Mit dem Widerruf wird der Schlüssel für diese Benutzer ID permanant unbrauchbar gemacht.</p>
               <p><strong>Möchtest du trotzdem wiederrufen?</strong></p>
@@ -251,7 +315,7 @@ export default class User extends React.Component {
                   <button type="button" className="btn btn-default btn-block" data-dismiss="modal">Nein</button>
                 </div>
                 <div className="col-xs-6">
-                  <button type="button" onClick={this.handleRevoke} className="btn btn-primary btn-block">Ja</button>
+                  <button type="button" onClick={() => this.processRevoke = true} className="btn btn-primary btn-block" data-dismiss="modal">Ja</button>
                 </div>
               </div>
             </div>
@@ -265,8 +329,9 @@ export default class User extends React.Component {
 User.contextType = KeyringOptions;
 
 User.propTypes = {
+  onKeyringChange: PropTypes.func,
   keyData: PropTypes.object,
-  match: PropTypes.object
+  match: PropTypes.object,
 };
 
 

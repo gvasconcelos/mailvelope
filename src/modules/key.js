@@ -179,14 +179,14 @@ export async function mapSubKeys(subkeys = [], toKey, key) {
 export async function mapUsers(users = [], toKey, keyring, key) {
   toKey.users = [];
   const {user: {userId: {userid: primaryUserId}}} = await key.getPrimaryUser();
-  await Promise.all(users.map(async user => {
-    console.log(user);
+  await Promise.all(users.map(async (user, index) => {
     try {
       const uiUser = {};
       if (!user.userId) {
         // filter out user attribute packages
         return;
       }
+      uiUser.id = index;
       uiUser.userId = user.userId.userid;
       uiUser.email = user.userId.email;
       uiUser.name = user.userId.name;

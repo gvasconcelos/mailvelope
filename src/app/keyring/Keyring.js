@@ -81,7 +81,7 @@ export default class Keyring extends React.Component {
         const gnupg = keyringId === mvelo.GNUPG_KEYRING_ID;
         // propagate state change to backend
         port.emit('set-active-keyring', {keyringId});
-        return {keyringId, defaultKeyFpr, demail, gnupg, keyringAttr, keysLoading: true};
+        return {keyringId, defaultKeyFpr, demail, gnupg, keyringAttr};
       }, () => {
         port.send('getKeys', {keyringId: this.state.keyringId})
         .then(keys => {

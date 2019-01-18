@@ -57,6 +57,14 @@ export default class KeyUsers extends React.Component {
     }
   }
 
+  sortUsers(a, b) {
+    const n = a.id - b.id;
+    if (n != 0) {
+      return n;
+    }
+    return b.isPrimary ? 0 : -1;
+  }
+
   render() {
     if (this.state.selectedUser !== null) {
       return <Redirect to={`/keyring/key/${this.props.keyIndex}/user/${this.state.selectedUser}`} />;
@@ -80,12 +88,12 @@ export default class KeyUsers extends React.Component {
               </tr>
             </thead>
             <tbody>
-              { this.props.users.map((user, index) =>
-                <tr key={index} onClick={e => this.showUserDetails(e, index)} onKeyPress={e => this.handleKeyPress(e, index)} tabIndex="0" aria-haspopup="true">
+              { this.props.users.sort(this.sortUsers).map(user =>
+                <tr key={user.id} onClick={e => this.showUserDetails(e, user.id)} onKeyPress={e => this.handleKeyPress(e, user.id)} tabIndex="0" aria-haspopup="true">
                   <td className="text-center">
                     {(this.props.keyType === 'private' && this.state.allowSetPrimaryUser)
                       ? (<label>
-                        <input type="radio" onChange={e => this.props.onChangePrimaryUser(e.target.value)} name="isPrimaryUser" value={index} checked={user.isPrimary} />
+                        <input type="radio" onChange={e => this.props.onChangePrimaryUser(e.target.value)} name="isPrimaryUser" value={user.id} checked={user.isPrimary} />
                       </label>)
                       : <span className={`${user.isPrimary && 'glyphicon glyphicon-ok'}`} aria-hidden="true"></span>
                     }

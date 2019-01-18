@@ -49,7 +49,7 @@ export default class Key extends React.Component {
       showDeleteModal: false,
       showExportModal: false,
       showRevokeModal: false,
-      isDeleted: false,
+      exit: false,
       modal: null,
       keyDetails: {
         ...props.keyData,
@@ -71,16 +71,23 @@ export default class Key extends React.Component {
     this.getKeyDetails(this.context);
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.keyData !== prevProps.keyData) {
+      this.getKeyDetails(this.context);
+    }
+  }
+
   async getKeyDetails({keyringId, demail}) {
     const keyDetails = await port.send('getKeyDetails', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
-    this.setState(prevState => ({
+    console.log('setting state');
+    this.setState({
       loading: false,
       keyDetails: {
         keyServerState: demail ? false : this.getKeyServerState(),
-        ...prevState.keyDetails,
+        ...this.props.keyData,
         ...keyDetails
       }
-    }));
+    });
   }
 
   getKeyServerState() {
@@ -102,7 +109,7 @@ export default class Key extends React.Component {
   }
 
   handleDelete() {
-    this.setState({isDeleted: true}, this.props.onDeleteKey(this.state.keyDetails.fingerprint, this.state.keyDetails.type));
+    this.setState({exit: true}, this.props.onDeleteKey(this.state.keyDetails.fingerprint, this.state.keyDetails.type));
   }
 
 
@@ -121,7 +128,10 @@ export default class Key extends React.Component {
       }
     } finally {
       this.processRevoke = false;
-      this.setState({processing: false});
+      this.setState({
+        processing: false,
+        showRevokeModal: false
+      });
     }
   }
 
@@ -171,7 +181,7 @@ export default class Key extends React.Component {
   }
 
   render() {
-    if (this.state.isDeleted) {
+    if (this.state.exit) {
       return <Redirect to="/keyring" />;
     }
     return (

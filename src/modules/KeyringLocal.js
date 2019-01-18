@@ -212,12 +212,73 @@ export default class KeyringLocal extends KeyringBase {
     return revokedKey;
   }
 
+  async removeUser(privateKey, userId) {
+    const index = privateKey.users.findIndex(({userId: {userid}}) => userid === userId);
+    if (index !== -1) {
+      privateKey.users.splice(index, 1);
+    }
+    const fingerprint = privateKey.primaryKey.getFingerprint();
+    this.sync.add(fingerprint, keyringSync.DELETE);
+    this.removeKey(fingerprint, 'private');
+    this.sync.add(fingerprint, keyringSync.INSERT);
+    this.addKey(privateKey);
+    await this.keystore.store();
+    await this.sync.commit();
+    return privateKey;
+  }
+
+  async revokeUser(unlockedKey, userId) {
+    const user = unlockedKey.users.find(({userId: {userid}}) => userid === userId);
+    const dataToSign = {
+      userId: user.userId,
+      userAttribute: user.userAttribute,
+      key: unlockedKey.primaryKey
+    };
+    const signingKey = await unlockedKey.getSigningKey();
+    const date = new Date();
+    const revocationSignature =  await openpgp.key.createSignaturePacket(dataToSign, null, signingKey.keyPacket, {
+      signatureType: 48,
+      reasonForRevocationFlag: 0,
+      reasonForRevocationString: ''
+    }, date);
+    revocationSignature.signature = await openpgp.stream.readToEnd(revocationSignature.signature);
+    user.revocationSignatures.push(revocationSignature);
+    const fingerprint = unlockedKey.primaryKey.getFingerprint();
+    const originalKey = this.getPrivateKeyByFpr(fingerprint);
+    await originalKey.users.find(({userId: {userid}}) => userid === userId).update(user, unlockedKey.primaryKey);
+    this.sync.add(fingerprint, keyringSync.UPDATE);
+    await this.keystore.store();
+    await this.sync.commit();
+    return unlockedKey;
+  }
+
+  async addUser(unlockedKey, user) {
+    const {user: {userId: {userid: primaryUserId}}, selfCertification: {keyExpirationTime}} = await unlockedKey.getPrimaryUser();
+    const {key: updatedKey} = await openpgp.reformatKey({privateKey: unlockedKey, userIds: [primaryUserId, user]}, keyExpirationTime);
+    const fingerprint = updatedKey.primaryKey.getFingerprint();
+    this.sync.add(fingerprint, keyringSync.UPDATE);
+    const originalKey = this.getPrivateKeyByFpr(fingerprint);
+    originalKey.users.push(updatedKey.users.find(({userId: {email}}) => email === user.email));
+    await this.keystore.store();
+    await this.sync.commit();
+    return originalKey;
+  }
+
+
   async setKeyExDate(unlockedKey, newExDate) {
     const keyExpirationTime = newExDate ? (newExDate.getTime() - unlockedKey.primaryKey.created.getTime()) / 1000 : 0;
-    const {user: {userId: {email, name}}} = await unlockedKey.getPrimaryUser();
-    const {key: updatedKey} = await openpgp.reformatKey({privateKey: unlockedKey, userIds: [{name, email}], keyExpirationTime});
-    this.sync.add(updatedKey.primaryKey.getFingerprint(), keyringSync.UPDATE);
-    const originalKey = this.getPrivateKeyByFpr(updatedKey.primaryKey.getFingerprint());
+    const {user: {userId: {userid}}} = await unlockedKey.getPrimaryUser();
+    const filteredSubkeys = [];
+    for (const subkey of unlockedKey.subKeys) {
+      if (await subkey.verify(unlockedKey.primaryKey) === 3) {
+        filteredSubkeys.push(subkey);
+      }
+    }
+    unlockedKey.subKeys = filteredSubkeys;
+    const {key: updatedKey} = await openpgp.reformatKey({privateKey: unlockedKey, userIds: [userid], keyExpirationTime});
+    const fingerprint = updatedKey.primaryKey.getFingerprint();
+    this.sync.add(fingerprint, keyringSync.UPDATE);
+    const originalKey = this.getPrivateKeyByFpr(fingerprint);
     await originalKey.update(updatedKey);
     await this.keystore.store();
     await this.sync.commit();
@@ -225,11 +286,13 @@ export default class KeyringLocal extends KeyringBase {
   }
 
   async setKeyPwd(unlockedKey, passphrase) {
-    const {user: {userId: {email, name}}} = await unlockedKey.getPrimaryUser();
-    const {key: updatedKey} = await openpgp.reformatKey({privateKey: unlockedKey, userIds: [{name, email}], passphrase});
-    this.sync.add(updatedKey.primaryKey.getFingerprint(), keyringSync.UPDATE);
-    const originalKey = this.getPrivateKeyByFpr(updatedKey.primaryKey.getFingerprint());
-    await originalKey.update(updatedKey);
+    await unlockedKey.encrypt(passphrase);
+    const updatedKey = unlockedKey;
+    const fingerprint = updatedKey.primaryKey.getFingerprint();
+    this.sync.add(fingerprint, keyringSync.DELETE);
+    this.removeKey(fingerprint, 'private');
+    this.sync.add(fingerprint, keyringSync.INSERT);
+    this.addKey(updatedKey);
     await this.keystore.store();
     await this.sync.commit();
     return updatedKey;

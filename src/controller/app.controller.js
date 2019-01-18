@@ -32,6 +32,9 @@ export default class AppController extends sub.SubController {
     this.on('getKeys', ({keyringId}) => keyringById(keyringId).getKeys());
     this.on('removeKey', this.removeKey);
     this.on('revokeKey', this.revokeKey);
+    this.on('remove-user', this.removeUser);
+    this.on('revoke-user', this.revokeUser);
+    this.on('add-user', this.addUser);
     this.on('set-key-expiry-date', this.setKeyExDate);
     this.on('set-key-password', this.setKeyPwd);
     this.on('validate-key-password', this.validateKeyPassword);
@@ -71,6 +74,29 @@ export default class AppController extends sub.SubController {
 
   async removeKey({fingerprint, type, keyringId}) {
     const result = await keyringById(keyringId).removeKey(fingerprint, type);
+    this.sendKeyUpdate();
+    return result;
+  }
+
+  async removeUser({fingerprint, userId, keyringId}) {
+    const privateKey = keyringById(keyringId).getPrivateKeyByFpr(fingerprint);
+    const result = await keyringById(keyringId).removeUser(privateKey, userId);
+    this.sendKeyUpdate();
+    return result;
+  }
+
+  async addUser({fingerprint, user, keyringId}) {
+    const privateKey = keyringById(keyringId).getPrivateKeyByFpr(fingerprint);
+    const unlockedKey = await this.unlockKey({key: privateKey, reason: 'PWD_DIALOG_REASON_ADD_USER'});
+    const result = await keyringById(keyringId).addUser(unlockedKey, user);
+    this.sendKeyUpdate();
+    return result;
+  }
+
+  async revokeUser({fingerprint, userId, keyringId}) {
+    const privateKey = keyringById(keyringId).getPrivateKeyByFpr(fingerprint);
+    const unlockedKey = await this.unlockKey({key: privateKey, reason: 'PWD_DIALOG_REASON_ADD_USER'});
+    const result = await keyringById(keyringId).revokeUser(unlockedKey, userId);
     this.sendKeyUpdate();
     return result;
   }

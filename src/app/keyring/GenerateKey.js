@@ -86,12 +86,10 @@ export default class GenerateKey extends React.Component {
 
   handleGenerate() {
     const errors = {};
-
     const validEmail = mvelo.util.checkEmail(this.state.email);
     if (!validEmail) {
       errors.email = new Error();
     }
-
     if (!this.context.gnupg) {
       if (!this.state.password.length) {
         errors.password = new Error();
@@ -100,12 +98,10 @@ export default class GenerateKey extends React.Component {
         errors.passwordCheck = new Error();
       }
     }
-
     if (Object.keys(errors).length) {
       this.setState({errors});
       return;
     }
-
     this.setState({generating: true});
   }
 

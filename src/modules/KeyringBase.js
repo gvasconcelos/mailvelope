@@ -285,6 +285,18 @@ export default class KeyringBase {
     return removedKey;
   }
 
+  addKey(key) {
+    if (key.isPublic()) {
+      this.keystore.publicKeys.push(key);
+    } else {
+      this.keystore.privateKeys.push(key);
+    }
+    if (!key) {
+      throw new Error('addKey: key not found');
+    }
+    return key;
+  }
+
   /**
    * Generate a new PGP keypair and optionally upload the public key to the
    * key server.

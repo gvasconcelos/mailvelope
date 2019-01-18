@@ -48,8 +48,6 @@ export default class KeyDetails extends React.Component {
       keys,
       selectedKeyIdx: defaultKeyIdx,
       exDateInput: normalizedExDate,
-      /* dummy for passwordInput data */
-      passwordInput: 'abc123',
       keyExpirationTime: normalizedExDate,
       passwordCurrent: '',
       password: '',
@@ -99,9 +97,7 @@ export default class KeyDetails extends React.Component {
       return {
         selectedKeyIdx,
         exDateInput: normalizedExDate,
-        keyExpirationTime: normalizedExDate,
-        /* dummy data */
-        passwordInput: prevState.passwordInput
+        keyExpirationTime: normalizedExDate
       };
     });
   }
@@ -230,7 +226,7 @@ export default class KeyDetails extends React.Component {
                       { this.props.keyDetails.type !== 'public' && this.state.selectedKeyIdx === 0
                         ? (
                           <div className="input-group input-group-sm">
-                            <input type="password" readOnly className="form-control" value={this.state.passwordInput} />
+                            <input type="password" readOnly className="form-control" value="********" />
                             <span className="input-group-btn">
                               <button onClick={() => this.setState({showPwdModal: true})} className="btn btn-default" type="button" disabled={!this.props.keyDetails.validity}>Ändern</button>
                             </span>
