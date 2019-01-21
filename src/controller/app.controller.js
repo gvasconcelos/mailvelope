@@ -7,7 +7,7 @@ import mvelo from '../lib/lib-mvelo';
 import * as sub from './sub.controller';
 import {initOpenPGP, decryptFile, encryptFile} from '../modules/pgpModel';
 import {getById as keyringById, getAllKeyringAttr, setKeyringAttr, deleteKeyring, getKeyData} from '../modules/keyring';
-import {get as getKeyPwdFromCache, unlock as unlockKey} from '../modules/pwdCache';
+import {delete as deletePwdCache, get as getKeyPwdFromCache, unlock as unlockKey} from '../modules/pwdCache';
 import {initScriptInjection} from '../lib/inject';
 import * as prefs from '../modules/prefs';
 import * as uiLog from '../modules/uiLog';
@@ -90,12 +90,14 @@ export default class AppController extends sub.SubController {
     const unlockedKey = await this.unlockKey({key: privateKey, reason: 'PWD_DIALOG_REASON_ADD_USER'});
     const result = await keyringById(keyringId).addUser(unlockedKey, user);
     this.sendKeyUpdate();
+    deletePwdCache(fingerprint);
     return result;
   }
 
   async revokeUser({fingerprint, userId, keyringId}) {
     const privateKey = keyringById(keyringId).getPrivateKeyByFpr(fingerprint);
-    const unlockedKey = await this.unlockKey({key: privateKey, reason: 'PWD_DIALOG_REASON_ADD_USER'});
+    const unlockedKey = await this.unlockKey({key: privateKey, reason: 'PWD_DIALOG_REASON_REVOKE_USER'});
+    console.log(unlockedKey, userId);
     const result = await keyringById(keyringId).revokeUser(unlockedKey, userId);
     this.sendKeyUpdate();
     return result;
@@ -115,6 +117,7 @@ export default class AppController extends sub.SubController {
     const newExDate = newExDateISOString !== false ? new Date(newExDateISOString) : false;
     const result = await keyringById(keyringId).setKeyExDate(unlockedKey, newExDate);
     this.sendKeyUpdate();
+    deletePwdCache(fingerprint);
     return result;
   }
 

@@ -228,6 +228,7 @@ export default class KeyringLocal extends KeyringBase {
   }
 
   async revokeUser(unlockedKey, userId) {
+    console.log(unlockedKey, userId);
     const user = unlockedKey.users.find(({userId: {userid}}) => userid === userId);
     const dataToSign = {
       userId: user.userId,
@@ -249,16 +250,19 @@ export default class KeyringLocal extends KeyringBase {
     this.sync.add(fingerprint, keyringSync.UPDATE);
     await this.keystore.store();
     await this.sync.commit();
-    return unlockedKey;
+    return originalKey;
   }
 
   async addUser(unlockedKey, user) {
-    const {user: {userId: {userid: primaryUserId}}, selfCertification: {keyExpirationTime}} = await unlockedKey.getPrimaryUser();
-    const {key: updatedKey} = await openpgp.reformatKey({privateKey: unlockedKey, userIds: [primaryUserId, user]}, keyExpirationTime);
+    const {user: {userId: {userid: primaryUserId}}, selfCertification: primaryUserSelfCertification} = await unlockedKey.getPrimaryUser();
+    const {key: updatedKey} = await openpgp.reformatKey({privateKey: unlockedKey, userIds: [primaryUserId, user], keyExpirationTime: primaryUserSelfCertification.keyExpirationTime});
     const fingerprint = updatedKey.primaryKey.getFingerprint();
     this.sync.add(fingerprint, keyringSync.UPDATE);
     const originalKey = this.getPrivateKeyByFpr(fingerprint);
-    originalKey.users.push(updatedKey.users.find(({userId: {email}}) => email === user.email));
+    originalKey.users.push(updatedKey.users[1]);
+    if (primaryUserSelfCertification.isPrimaryUserID !== true) {
+      await originalKey.users.find(({userId: {userid}}) => userid === primaryUserId).update(updatedKey.users[0], unlockedKey.primaryKey);
+    }
     await this.keystore.store();
     await this.sync.commit();
     return originalKey;

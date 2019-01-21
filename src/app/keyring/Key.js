@@ -79,7 +79,6 @@ export default class Key extends React.Component {
 
   async getKeyDetails({keyringId, demail}) {
     const keyDetails = await port.send('getKeyDetails', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
-    console.log('setting state');
     this.setState({
       loading: false,
       keyDetails: {
@@ -212,7 +211,7 @@ export default class Key extends React.Component {
           <Spinner delay={0} />
         ) : (
         <>
-          <KeyUsers keyIndex={this.props.match.params.keyIdx} keyType={this.state.keyDetails.type} keyValidity={this.state.keyDetails.validity} users={this.state.keyDetails.users} onChangePrimaryUser={userIdx => this.handleSetPrimaryUser(userIdx)} />
+          <KeyUsers keyFpr={this.props.match.params.keyFpr} keyType={this.state.keyDetails.type} keyValidity={this.state.keyDetails.validity} users={this.state.keyDetails.users} onChangePrimaryUser={userIdx => this.handleSetPrimaryUser(userIdx)} />
           {this.state.keyDetails.keyServerState &&
             this.state.keyDetails.keyServerState.sync
             ? this.state.keyDetails.keyServerState.confirmed

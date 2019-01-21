@@ -73,12 +73,12 @@ export default class KeyGrid extends React.Component {
     // .then(details => this.setState({keyDetails: {...key, ...details}}));
   }
 
-  deleteKeyEntry(e, index) {
+  deleteKeyEntry(e, fingerprint) {
     e.stopPropagation();
     const deleteConfirm = confirm(l10n.map.keygrid_delete_confirmation);
     if (deleteConfirm) {
-      const key = this.props.keys[index];
-      this.props.onDeleteKey(key.fingerprint, key.type);
+      const key = this.props.keys.find(key => key.fingerprint === fingerprint);
+      this.props.onDeleteKey(fingerprint, key.type);
     }
   }
 
@@ -160,7 +160,7 @@ export default class KeyGrid extends React.Component {
             <tbody>
               { this.props.keys.map((key, index) =>
                 !this.filterKey(key.type) &&
-                <tr key={index} onClick={() => this.showKeyDetails(index)} onKeyPress={e => this.handleKeyPress(e, index)} tabIndex="0" aria-haspopup="true">
+                <tr key={index} onClick={() => this.showKeyDetails(key.fingerprint)} onKeyPress={e => this.handleKeyPress(e, key.fingerprint)} tabIndex="0" aria-haspopup="true">
                   <td className="text-center">
                     <span className={key.type === 'public' ? 'publicKey' : 'keyPair'}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                   </td>
@@ -171,7 +171,7 @@ export default class KeyGrid extends React.Component {
                   <td className="text-center text-nowrap">
                     <div className="actions">
                       <button type="button" className="btn btn-default keyDetailsBtn" aria-haspopup="true"><span className="glyphicon glyphicon-info-sign"></span></button>
-                      {!(this.context.gnupg && key.type === 'private') && <button type="button" onClick={e => this.deleteKeyEntry(e, index)} className="btn btn-default keyDeleteBtn"><span className="glyphicon glyphicon-trash"></span></button>}
+                      {!(this.context.gnupg && key.type === 'private') && <button type="button" onClick={e => this.deleteKeyEntry(e, key.fingerprint)} className="btn btn-default keyDeleteBtn"><span className="glyphicon glyphicon-trash"></span></button>}
                     </div>
                   </td>
                 </tr>

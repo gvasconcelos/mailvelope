@@ -67,14 +67,14 @@ export default class KeyUsers extends React.Component {
 
   render() {
     if (this.state.selectedUser !== null) {
-      return <Redirect to={`/keyring/key/${this.props.keyIndex}/user/${this.state.selectedUser}`} />;
+      return <Redirect to={`/keyring/key/${this.props.keyFpr}/user/${this.state.selectedUser}`} />;
     }
     return (
       <div className="keyUsers">
         <div className="panel panel-default">
           <div className="panel-heading clearfix">
             <h4 className="pull-left text-muted">Zugeordnete Benutzer IDs</h4>
-            {(this.props.keyType !== 'public' && this.props.keyValidity) && <Link to={`/keyring/key/${this.props.keyIndex}/user/add`} className="btn btn-sm btn-default pull-right" replace tabIndex="0">Neue hinzufügen</Link>}
+            {(this.props.keyType !== 'public' && this.props.keyValidity) && <Link to={`/keyring/key/${this.props.keyFpr}/user/add`} className="btn btn-sm btn-default pull-right" replace tabIndex="0">Neue hinzufügen</Link>}
           </div>
           <table className="table table-hover">
             <thead>
@@ -119,7 +119,7 @@ KeyUsers.contextType = KeyringOptions;
 KeyUsers.propTypes = {
   users: PropTypes.array,
   keyType: PropTypes.string,
-  keyIndex: PropTypes.string,
+  keyFpr: PropTypes.string,
   keyValidity: PropTypes.bool,
   onChangePrimaryUser: PropTypes.func
 };

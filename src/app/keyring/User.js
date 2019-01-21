@@ -50,6 +50,7 @@ export default class User extends React.Component {
       hasChanged: false,
       modal: null,
       errors: {},
+      userEmails: [],
       user: {
         name: '',
         email: ''
@@ -79,8 +80,8 @@ export default class User extends React.Component {
     let user = {};
     let allowToRemove = false;
     let allowToRevoke = false;
+    const result = await port.send('getKeyDetails', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
     if (this.props.match.params.userIdx !== 'add') {
-      const result = await port.send('getKeyDetails', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
       const {signatures, userId, name, email, status} = result.users.find(user => user.id == this.props.match.params.userIdx);
       allowToRemove = ((result.users.filter(user => user.status === 3).length > 1) || status < 3) && this.state.keyDetails.status === 3,
       allowToRevoke = (result.users.filter(user => user.status === 3).length > 1) && status === 3,
@@ -98,6 +99,7 @@ export default class User extends React.Component {
       allowToRemove,
       allowToRevoke,
       loading: false,
+      userEmails: result.users.map(user => user.email),
       user,
       keyDetails: {
         ...prevState.keyDetails,
@@ -124,7 +126,11 @@ export default class User extends React.Component {
     const errors = {};
     const validEmail = mvelo.util.checkEmail(this.state.user.email);
     if (!validEmail) {
-      errors.email = new Error();
+      errors.email = {invalid: new Error()};
+    } else {
+      if (this.state.userEmails.includes(this.state.user.email)) {
+        errors.email = {exists: new Error()};
+      }
     }
     if (Object.keys(errors).length) {
       this.setState({errors});
@@ -191,12 +197,12 @@ export default class User extends React.Component {
 
   render() {
     if (this.state.exit) {
-      return <Redirect to={`/keyring/key/${this.props.match.params.keyIdx}`} />;
+      return <Redirect to={`/keyring/key/${this.props.match.params.keyFpr}`} />;
     }
     return (
       <div className="user">
         <ol className="breadcrumb">
-          <li><Link to={`/keyring/key/${this.props.match.params.keyIdx}`} replace tabIndex="0"><span className="glyphicon glyphicon-menu-left" aria-hidden="true"></span> {this.state.keyDetails.name}</Link></li>
+          <li><Link to={`/keyring/key/${this.props.match.params.keyFpr}`} replace tabIndex="0"><span className="glyphicon glyphicon-menu-left" aria-hidden="true"></span> {this.state.keyDetails.name}</Link></li>
         </ol>
         {this.state.loading ? (
           <Spinner delay={0} />
