@@ -532,7 +532,7 @@
     "description": "Key generate button label"
   },
   "key_gen_invalid_email": {
-    "message": "Nicht gültige E-Mail-Adresse",
+    "message": "Ungültige E-Mail-Adresse",
     "description": "Error message."
   },
   "key_gen_key_size": {
@@ -540,7 +540,7 @@
     "description": "Advanced key generation settings: Key size"
   },
   "key_gen_name_help": {
-    "message": "Voller Name des Schlüsseleigentümers",
+    "message": "Vollständiger Name des Schlüsseleigentümers",
     "description": "Help text for name field."
   },
   "key_gen_pwd": {

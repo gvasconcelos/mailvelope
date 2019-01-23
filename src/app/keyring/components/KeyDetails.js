@@ -200,13 +200,13 @@ export default class KeyDetails extends React.Component {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label className="col-sm-3 control-label">Erstellt am</label>
+                    <label className="col-sm-3 control-label">Erstellt</label>
                     <div className="col-sm-9 text-only">
                       {moment(selectedKey.crDate).format('L')}
                     </div>
                   </div>
                   <div className="form-group">
-                    <label className="col-sm-3 control-label">Läuft ab am</label>
+                    <label className="col-sm-3 control-label">Läuft ab</label>
                     <div className="col-sm-9">
                       { this.props.keyDetails.type !== 'public' && this.state.selectedKeyIdx === 0
                         ? (
@@ -267,7 +267,7 @@ export default class KeyDetails extends React.Component {
           </div>
         </div>
         {this.state.showExDateModal &&
-          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Ablaufdatum ändern" hideFooter={true} onHide={this.handleHiddenModal}>
+          <ModalDialog ref={modal => this.modal = modal} size="medium" headerClass="text-center" title="Ablaufdatum ändern" hideFooter={true} onHide={this.handleHiddenModal}>
             <>
               <div className="form-group">
                 <DatePicker value={this.state.keyExpirationTime} onChange={moment => this.handleChange({target: {id: 'keyExpirationTime', value: moment}})} placeholder={l10n.map.keygrid_key_not_expire} minDate={moment().add({days: 1})} maxDate={moment('2080-12-31')} disabled={false} />

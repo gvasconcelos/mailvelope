@@ -199,9 +199,9 @@ export default class Key extends React.Component {
             </div>
             <div className="collapse navbar-collapse">
               <div className="navbar-form navbar-right">
-                <button type="button" onClick={() => this.setState({showDeleteModal: true})} className="btn btn-default">Entfernen</button>
-                <button type="button" onClick={() => this.setState({showExportModal: true})} className="btn btn-default margin-left-sm">Exportieren</button>
-                {this.state.keyDetails.type !== 'public' && <button type="button" onClick={() => this.setState({showRevokeModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.keyDetails.validity}>Gültigkeit widerrufen</button>}
+                <button type="button" onClick={() => this.setState({showDeleteModal: true})} className="btn btn-default" title="Schlüssel aus Schlüsselbund entfernen">Entfernen</button>
+                <button type="button" onClick={() => this.setState({showExportModal: true})} className="btn btn-default margin-left-sm" title="Schlüssel exportieren">Exportieren</button>
+                {this.state.keyDetails.type !== 'public' && <button type="button" onClick={() => this.setState({showRevokeModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.keyDetails.validity} title="Schlüssel für ungültig erklären">Gültigkeit widerrufen</button>}
                 { (!this.context.gnupg && this.state.keyDetails.type !== 'public') && <DefaultKeyButton className="margin-left-sm" onClick={this.handleDefaultClick} isDefault={this.state.isDefault} disabled={!this.state.keyDetails.validDefaultKey} />}
               </div>
             </div>
@@ -239,7 +239,7 @@ export default class Key extends React.Component {
         </>
         )}
         {this.state.showDeleteModal &&
-          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Benutzer ID entfernen" hideFooter={true} onHide={this.handleHiddenModal}>
+          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Benutzer-ID entfernen" hideFooter={true} onHide={this.handleHiddenModal}>
             <div className="text-center">
               <p>{l10n.map.keygrid_delete_confirmation}</p>
               <div className="row gutter-5">
@@ -265,7 +265,7 @@ export default class Key extends React.Component {
           <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Gültigkeit widerrufen" hideFooter={true} onHide={this.handleHiddenModal}>
             <div className="text-center">
               <p>Mit dem Widerruf wird der Schlüssel permanant unbrauchbar gemacht.</p>
-              <p><strong>Möchtest du trotzdem wiederrufen?</strong></p>
+              <p><strong>Möchten Sie trotzdem wiederrufen?</strong></p>
               <div className="row gutter-5">
                 <div className="col-xs-6">
                   <button type="button" className="btn btn-default btn-block" data-dismiss="modal">Nein</button>

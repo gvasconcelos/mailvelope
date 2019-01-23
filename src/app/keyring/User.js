@@ -215,7 +215,7 @@ export default class User extends React.Component {
                     {this.props.match.params.userIdx !== 'add' ?
                       (
                         <>
-                          <span>Benutzer ID</span>
+                          <span>Benutzer-ID</span>
                           <KeyStatus className="margin-left-sm" status={this.state.user.status} />
                         </>
                       ) : (
@@ -227,12 +227,12 @@ export default class User extends React.Component {
                 { this.state.keyDetails.type !== 'public' &&
                 <div className="collapse navbar-collapse">
                   <div className="navbar-form navbar-right">
-                    {this.props.match.params.userIdx === 'add' && <button type="button" onClick={this.handleAdd} className="btn btn-primary">Speichern</button>}
+                    {this.props.match.params.userIdx === 'add' && <button type="button" onClick={this.handleAdd} className="btn btn-primary">Erstellen</button>}
                     {this.props.match.params.userIdx !== 'add' &&
                       (
                         <>
-                          <button type="button" onClick={() => this.setState({showDeleteModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.allowToRemove}>Entfernen</button>
-                          <button type="button" onClick={() => this.setState({showRevokeModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.allowToRevoke}>Gültigkeit widerrufen</button>
+                          <button type="button" onClick={() => this.setState({showDeleteModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.allowToRemove} title="Benutzer-ID entfernen">Entfernen</button>
+                          <button type="button" onClick={() => this.setState({showRevokeModal: true})} className="btn btn-default margin-left-sm" disabled={!this.state.allowToRevoke} title="Benutzer-ID für ungültig erklären">Gültigkeit widerrufen</button>
                         </>
                       )
                     }
@@ -297,9 +297,9 @@ export default class User extends React.Component {
           <Spinner fullscreen={true} delay={0} />
         }
         {this.state.showDeleteModal &&
-          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Benutzer ID entfernen" hideFooter={true} onHide={this.handleHiddenModal}>
+          <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Benutzer-ID entfernen" hideFooter={true} onHide={this.handleHiddenModal}>
             <div className="text-center">
-              <p>Möchtest du diese Benutzer ID aus deinem Schlüssel entfernen?</p>
+              <p>Möchten Sie diese Benutzer-ID aus Ihrem Schlüssel entfernen?</p>
               <div className="row gutter-5">
                 <div className="col-xs-6">
                   <button type="button" className="btn btn-default btn-block" data-dismiss="modal">Nein</button>
@@ -314,8 +314,8 @@ export default class User extends React.Component {
         {this.state.showRevokeModal &&
           <ModalDialog ref={modal => this.modal = modal} size="small" headerClass="text-center" title="Gültigkeit widerrufen" hideFooter={true} onHide={this.handleHiddenModal}>
             <div className="text-center">
-              <p>Mit dem Widerruf wird der Schlüssel für diese Benutzer ID permanant unbrauchbar gemacht.</p>
-              <p><strong>Möchtest du trotzdem wiederrufen?</strong></p>
+              <p>Mit dem Widerruf wird der Schlüssel für diese Benutzer-ID permanant unbrauchbar gemacht.</p>
+              <p><strong>Möchten Sie trotzdem wiederrufen?</strong></p>
               <div className="row gutter-5">
                 <div className="col-xs-6">
                   <button type="button" className="btn btn-default btn-block" data-dismiss="modal">Nein</button>

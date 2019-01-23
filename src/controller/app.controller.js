@@ -126,6 +126,7 @@ export default class AppController extends sub.SubController {
     const unlockedKey = await unlockKey({key: privateKey, password: currentPassword});
     const result = await keyringById(keyringId).setKeyPwd(unlockedKey, password);
     this.sendKeyUpdate();
+    deletePwdCache(fingerprint);
     return result;
   }
 

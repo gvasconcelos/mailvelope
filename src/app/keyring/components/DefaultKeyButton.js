@@ -13,44 +13,26 @@ l10n.register([
   'invalid_default_key'
 ]);
 
-export default class DefaultKeyButton extends React.Component {
-  componentDidMount() {
-    this.initTooltip();
-  }
-
-  componentDidUpdate() {
-    this.initTooltip();
-  }
-
-  initTooltip() {
-    if (this.props.disabled) {
-      $(this.defaultButton).tooltip();
-    }
-  }
-
-  render() {
-    return (
-      <>
-      {this.props.isDefault
+export default function DefaultKeyButton(props) {
+  return (
+    <>
+      {props.isDefault
         ? (
-          <button type="button" className={`btn btn-warning ${this.props.className || ''}`} disabled={true}>{l10n.map.keygrid_default_label}</button>
+          <button type="button" className={`btn btn-warning ${props.className || ''}`} disabled={true} title="Schlüssel ist als Standardschlüssel gesetzt">{l10n.map.keygrid_default_label}</button>
         ) :
-        this.props.disabled
+        props.disabled
           ? (
-            <div ref={node => this.defaultButton = node} style={{display: 'inline-block'}} data-toggle="tooltip" data-placement="top" title={l10n.map.invalid_default_key}>
-              <button type="button" className={`btn btn-default disabled ${this.props.className || ''}`}>
-                {l10n.map.key_set_as_default}
-              </button>
-            </div>
+            <button type="button" className={`btn btn-default ${props.className || ''}`} disabled={true} title="Schlüssel ist ungültig und kann nicht als Standardschlüssel gesetzt werden">
+              {l10n.map.key_set_as_default}
+            </button>
           ) : (
-            <button type="button" className={`btn btn-default ${this.props.className || ''}`} onClick={this.props.onClick}>
+            <button type="button" className={`btn btn-default ${props.className || ''}`} onClick={props.onClick} title="Schlüssel als Standardschlüssel setzen">
               {l10n.map.key_set_as_default}
             </button>
           )
       }
-      </>
-    );
-  }
+    </>
+  );
 }
 
 DefaultKeyButton.propTypes = {
