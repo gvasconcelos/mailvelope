@@ -13,6 +13,7 @@ import * as prefs from '../modules/prefs';
 import * as uiLog from '../modules/uiLog';
 import {getVersion} from '../modules/defaults';
 import {gpgme} from '../lib/browser.runtime';
+import * as mveloKeyServer from '../modules/mveloKeyServer';
 
 const unlockQueue = new mvelo.util.PromiseQueue();
 
@@ -32,6 +33,8 @@ export default class AppController extends sub.SubController {
     this.on('getKeys', ({keyringId}) => keyringById(keyringId).getKeys());
     this.on('removeKey', this.removeKey);
     this.on('revokeKey', this.revokeKey);
+    this.on('get-keyserver-status', this.getKeyServerStatus);
+    this.on('set-keyserver-status', this.setKeyServerStatus);
     this.on('remove-user', this.removeUser);
     this.on('revoke-user', this.revokeUser);
     this.on('add-user', this.addUser);
@@ -108,6 +111,67 @@ export default class AppController extends sub.SubController {
     const unlockedKey = await this.unlockKey({key: privateKey, reason: 'PWD_DIALOG_REASON_REVOKE'});
     const result = await keyringById(keyringId).revokeKey(unlockedKey);
     this.sendKeyUpdate();
+    return result;
+  }
+
+  async getKeyServerStatus({fingerprint, keyringId}) {
+    let status;
+    const keyServerStore = new mveloKeyServer.KeyServerMap();
+    await keyServerStore.init();
+    const stored = keyServerStore.get(fingerprint);
+    console.log(stored);
+    const isUploaded = typeof await mveloKeyServer.fetch({fingerprint}) !== 'undefined';
+    console.log(isUploaded);
+    if (typeof stored === 'undefined') {
+      // key not in local key server storage
+      if (isUploaded && keyringById(keyringId).hasPrivateKey([fingerprint])) {
+        // key is already uploaded
+        // set key in local key server storage to true
+        await keyServerStore.set(fingerprint, true);
+        status = {confirmed: true, sync: true};
+      } else {
+        await keyServerStore.set(fingerprint, false);
+        status = {confirmed: true, sync: false};
+      }
+    } else {
+      // key has sync state in local storage
+      if (stored && isUploaded) {
+        // key has true flag in local key server storage (sync request has been sent) && key is on key server
+        status = {confirmed: true, sync: true};
+      }
+      if (stored && !isUploaded) {
+        // key has true flag (sync request) && not on keyServer
+        status = {confirmed: false, sync: true};
+      }
+      if (!stored && isUploaded) {
+        // key has false flag (desync request) && is on keyServer
+        status = {confirmed: false, sync: false};
+      }
+      if (!stored && !isUploaded) {
+        // key has false flag (desync request) && is not keyServer
+        status = {confirmed: true, sync: false};
+      }
+    }
+    console.log(status);
+    return status;
+  }
+
+  async setKeyServerStatus({fingerprint, keyringId, sync}) {
+    const key = keyringById(keyringId).keystore.getKeysForId(fingerprint)[0];
+    let result;
+    if (sync) {
+      const publicKeyArmored = key.toPublic().armor();
+      result = await mveloKeyServer.upload({publicKeyArmored});
+    } else {
+      // keyId does not work
+      // const keyId = key.getKeyId().toHex().toUpperCase();
+      // result = await mveloKeyServer.remove({keyId: `0x${keyId}`});
+      const {user: {userId: {email}}} = await key.getPrimaryUser();
+      result = await mveloKeyServer.remove({email});
+    }
+    const keyServerStore = new mveloKeyServer.KeyServerMap();
+    await keyServerStore.init();
+    await keyServerStore.set(fingerprint, sync);
     return result;
   }
 

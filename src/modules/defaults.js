@@ -4,7 +4,7 @@
  */
 
 import mvelo from '../lib/lib-mvelo';
-import {getPreferences, setPreferences, getWatchList, setWatchList} from './prefs';
+import {setKeyServerStatus, getPreferences, setPreferences, getWatchList, setWatchList} from './prefs';
 import {getSecureRandom} from './crypto';
 import defaults from '../res/defaults.json';
 
@@ -41,7 +41,8 @@ export function init() {
       prefs.version = defaults.version;
       initSecurityBgnd(prefs);
       return setWatchList(defaults.watch_list)
-      .then(() => setPreferences(prefs));
+      .then(() => setPreferences(prefs))
+      .then(() => setKeyServerStatus({}));
     } else if (prefs.version !== defaults.version) {
       // version changed
       prefs.version = defaults.version;

@@ -65,6 +65,9 @@ export default class Key extends React.Component {
     this.handleChangePwd = this.handleChangePwd.bind(this);
     this.handleHiddenModal = this.handleHiddenModal.bind(this);
     this.validateKeyPassword = this.validateKeyPassword.bind(this);
+    this.getKeyServerStatus = this.getKeyServerStatus.bind(this);
+    this.handleKeyServerSync = this.handleKeyServerSync.bind(this);
+    this.getKeyServerSyncAlert = this.getKeyServerSyncAlert.bind(this);
   }
 
   componentDidMount() {
@@ -79,17 +82,19 @@ export default class Key extends React.Component {
 
   async getKeyDetails({keyringId, demail}) {
     const keyDetails = await port.send('getKeyDetails', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
+    const keyServerStatus = await port.send('get-keyserver-status', {fingerprint: this.state.keyDetails.fingerprint, keyringId});
+    console.log(keyServerStatus);
     this.setState({
       loading: false,
       keyDetails: {
-        keyServerState: demail ? false : this.getKeyServerState(),
+        keyServerState: demail ? false : keyServerStatus,
         ...this.props.keyData,
         ...keyDetails
       }
     });
   }
 
-  getKeyServerState() {
+  async getKeyServerStatus() {
     /*
     synchronisiert (Wieder entfernen) -> sync = true && confirmed = true ||
     synchroniesirung gestartet, warten auf Bestätigung (Erneut senden) -> sync = true && confirmed = false ||
@@ -138,8 +143,14 @@ export default class Key extends React.Component {
     console.log('implement set primary user id:', userIdx);
   }
 
-  handleKeyServerSync(sync) {
-    console.log('implement keyserver syn', sync);
+  async handleKeyServerSync(sync) {
+    try {
+      const result = await port.send('set-keyserver-status', {fingerprint: this.state.keyDetails.fingerprint, keyringId: this.context.keyringId, sync});
+      console.log(result);
+      this.props.onKeyringChange();
+    } catch (error) {
+      throw error;
+    }
   }
 
   async handleSetExDate(newExDateISOString) {
@@ -179,6 +190,48 @@ export default class Key extends React.Component {
     }
   }
 
+  getKeyServerSyncAlert() {
+    let data;
+    if (this.state.keyDetails.keyServerState.sync) {
+      if (this.state.keyDetails.keyServerState.confirmed) {
+        data = {
+          type: 'success',
+          text: 'Der Schlüssel ist mit dem Mailvelope Server synchronisiert.',
+          sync: false,
+          btnText: 'Wieder entfernen'
+        };
+      } else {
+        data = {
+          type: 'warning',
+          text: `Zur Synchronisation des Schüssels mit dem Mailvelope Server wurde eine Bestätigungs-Email an ${this.state.keyDetails.email} versandt.`,
+          sync: true,
+          btnText: 'Erneut senden'
+        };
+      }
+    } else {
+      if (this.state.keyDetails.keyServerState.confirmed) {
+        data = {
+          type: 'danger',
+          text: 'Der Schlüssel ist nicht mit dem Mailvelope Server synchronisiert.',
+          sync: true,
+          btnText: 'Synchronisieren'
+        };
+      } else {
+        data = {
+          type: 'warning',
+          text: 'Zur endgültigen Entfernung Ihres Schlüssels vom Mailvelope Server wurde eine Bestätigungs Email versandt.',
+          sync: false,
+          btnText: 'Erneu senden'
+        };
+      }
+    }
+    return (
+      <Alert type={data.type}>
+        {data.text} <button type="button" onClick={() => this.handleKeyServerSync(data.sync)} className="margin-left-md btn btn-sm btn-default">{data.btnText}</button>
+      </Alert>
+    );
+  }
+
   render() {
     if (this.state.exit) {
       return <Redirect to="/keyring" />;
@@ -213,27 +266,7 @@ export default class Key extends React.Component {
         <>
           <KeyUsers keyFpr={this.props.match.params.keyFpr} keyType={this.state.keyDetails.type} keyValidity={this.state.keyDetails.validity} users={this.state.keyDetails.users} onChangePrimaryUser={userIdx => this.handleSetPrimaryUser(userIdx)} />
           {this.state.keyDetails.keyServerState &&
-            this.state.keyDetails.keyServerState.sync
-            ? this.state.keyDetails.keyServerState.confirmed
-              ? (
-                <Alert type="success">
-                  Der Schlüssel ist mit dem Mailvelope Server synchronisiert. <button type="button" onClick={() => this.handleKeyServerSync(false)} className="margin-left-md btn btn-sm btn-default">Wieder entfernen</button>
-                </Alert>
-              ) : (
-                <Alert type="warning">
-                  {`Zur Synchronisation des Schüssels mit dem Mailvelope Server wurde eine Bestätigungs-Email an ${this.state.keyDetails.email} versandt.`} <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Erneut senden</button>
-                </Alert>
-              )
-            : this.state.keyDetails.keyServerState.confirmed
-              ? (
-                <Alert type="danger">
-                  Der Schlüssel ist nicht mit dem Mailvelope Server synchronisiert. <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Synchronisieren</button>
-                </Alert>
-              ) : (
-                <Alert type="warning">
-                  {`Um den Schlüssel vom Mailvelope-Server zu löschen, wurde eine Bestätigungs-Email an ${this.state.keyDetails.email} versandt.`} <button type="button" onClick={() => this.handleKeyServerSync(true)} className="margin-left-md btn btn-sm btn-default">Erneut senden</button>
-                </Alert>
-              )
+            this.getKeyServerSyncAlert()
           }
           <KeyDetails keyDetails={this.state.keyDetails} onChangeExpDate={this.handleSetExDate} onValidateKeyPwd={this.validateKeyPassword} onChangePwd={this.handleChangePwd}></KeyDetails>
         </>

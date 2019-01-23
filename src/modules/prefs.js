@@ -77,3 +77,11 @@ export function getPreferences() {
 export function setPreferences(preferences) {
   return mvelo.storage.set('mvelo.preferences', preferences);
 }
+
+export function getKeyServerStatus() {
+  return mvelo.storage.get('mvelo.keyserver');
+}
+
+export function setKeyServerStatus(keysObject) {
+  return mvelo.storage.set('mvelo.keyserver', keysObject);
+}

@@ -6,7 +6,7 @@
 /**
  * @fileOverview A simple HTTP client for Mailvelope Key Server's REST api.
  */
-
+import mvelo from '../lib/lib-mvelo';
 import {key as openpgpKey} from 'openpgp';
 import {filterUserIdsByEmail} from './key';
 
@@ -24,6 +24,39 @@ const DEFAULT_URL = 'https://keys.mailvelope.com';
  * @yield {String|{undefined}  Armored key with matching uid.
  *                             Undefined if no key was found.
  */
+
+export class KeyServerMap extends Map {
+  async init() {
+    const keys = await mvelo.storage.get('mvelo.keyserver') || {};
+    Object.keys(keys).forEach(key => super.set(key, keys[key]));
+  }
+
+  get(key) {
+    const value = super.get(key);
+    return value;
+  }
+
+  async set(key, value) {
+    super.set(key, value);
+    await this.store();
+  }
+
+  async store() {
+    await mvelo.storage.set('mvelo.keyserver', this.toObject());
+  }
+
+  toObject() {
+    const allKeyEntries = {};
+    this.forEach((value, key) => allKeyEntries[key] = value);
+    return allKeyEntries;
+  }
+
+  async delete(key) {
+    super.delete(key);
+    await this.store();
+  }
+}
+
 export async function lookup(email) {
   let jsonKey;
   if (!email) {
